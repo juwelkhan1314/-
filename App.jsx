@@ -9,9 +9,16 @@ import {
 import { supabase, isSupabaseConfigured } from "./supabase";
 
 const C = {
-  navy: "#102D50", navy2: "#173B63", pale: "#EAF1F8",
-  border: "#D9E3EE", muted: "#64748B", red: "#B42318",
-  white: "#FFFFFF", bg: "#F4F7FB", green: "#176B52"
+  const C = {
+  navy: "#183B5B",
+  navy2: "#285A82",
+  pale: "#EAF4FC",
+  border: "#DFE8F0",
+  muted: "#718096",
+  red: "#C04444",
+  white: "#FFFFFF",
+  bg: "#F7FAFD",
+  green: "#26836B"
 };
 
 function Btn({ children, onClick, type="button", disabled=false, tone="navy" }) {

@@ -71,10 +71,10 @@ function Header({user, role, signOut}) {
     <div style={{background:"#07366B",color:"#fff",fontSize:13}}>
       <div style={{maxWidth:1200,margin:"auto",padding:"8px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}>
         <div style={{display:"flex",gap:20,alignItems:"center",flexWrap:"wrap"}}>
-          <span><MapPin size={14} style={{verticalAlign:"middle",marginRight:5}}/>চট্টগ্রাম, বাংলাদেশ</span>
-          <span><Phone size={14} style={{verticalAlign:"middle",marginRight:5}}/>+880 1711-123456</span>
+          <span><MapPin size={14} style={{verticalAlign:"middle",marginRight:5}}/>চট্টগ্রাম,শহর</span>
+          <span><Phone size={14} style={{verticalAlign:"middle",marginRight:5}}/>+88 01401314095</span>
         </div>
-        <div style={{display:"flex",gap:12,alignItems:"center"}}><span><Clock3 size={14} style={{verticalAlign:"middle",marginRight:5}}/>সকাল ৮টা - রাত ১০টা</span><span style={{fontSize:17}}>🔵 🔴 🟢</span></div>
+        <div style={{display:"flex",gap:12,alignItems:"center"}}><span><Clock3 size={14} style={{verticalAlign:"middle",marginRight:5}}/>ওয়েবসাইট সমস্যা হলে যোগাযোগ সকাল ৮টা - রাত ১০টা</span><span style={{fontSize:17}}>🟢</span></div>
       </div>
     </div>
     <div style={{maxWidth:1200,margin:"auto",padding:"12px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:15,flexWrap:"wrap"}}>
@@ -83,7 +83,7 @@ function Header({user, role, signOut}) {
           <CarFront size={78} strokeWidth={1.8}/>
           <b style={{position:"absolute",bottom:0,fontSize:12,letterSpacing:2,background:"#fff",padding:"0 5px"}}>CDB</b>
         </span>
-        <span style={{fontSize:22,fontWeight:900,lineHeight:1.08}}>Chattogram<br/>Driver Bazar BD<small style={{display:"block",fontSize:12,marginTop:5}}>চালক ও গাড়ির মালিকের মিলনমেলা</small></span>
+        <span style={{fontSize:22,fontWeight:900,lineHeight:1.08}}>Chattogram<br/>Driver Bazar BD<small style={{display:"block",fontSize:12,marginTop:5}}>চালক ও গাড়ির মালিকের এক প্লাটফর্মে</small></span>
       </Link>
       <button onClick={()=>setOpen(!open)} style={{display:"none",border:0,background:"#EAF4FF",color:"#07366B",padding:10,borderRadius:9}} className="cdb-menu"><Menu/></button>
       <nav className="cdb-nav" style={{display:"flex",gap:22,alignItems:"center",flexWrap:"wrap"}}>

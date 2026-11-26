@@ -48,12 +48,15 @@ function SelectField({label, options, ...props}) {
   </label>;
 }
 function Panel({title, children, right}) {
-  return <section style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:15,padding:16,marginBottom:16}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:13,flexWrap:"wrap"}}>
-      <h2 style={{fontSize:19,margin:0,color:C.navy}}>{title}</h2>{right}
-    </div>{children}
-  </section>;
-}
+  return <section style={{
+  background:"linear-gradient(135deg,#F4F9FF 0%,#E5F1FC 55%,#DCEBFA 100%)",
+  color:C.navy,
+  padding:"35px 25px",
+  border:"1px solid #DCE8F4",
+  borderRadius:22,
+  overflow:"hidden",
+  boxShadow:"0 8px 28px rgba(40,90,130,0.08)"
+}}>
 function Notice({text, error}) {
   if (!text) return null;
   return <div style={{padding:11,borderRadius:9,margin:"10px 0",background:error?"#fff0ef":C.pale,color:error?C.red:C.navy}}>{text}</div>;

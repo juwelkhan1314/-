@@ -111,13 +111,13 @@ function Home() {
   return <main style={{maxWidth:1120,margin:"auto",padding:"20px 16px 32px"}}>
     <section style={{background:C.navy,color:"#fff",padding:"30px 22px",borderRadius:20,overflow:"hidden"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"#C9D9EA"}}>চট্টগ্রাম জেলার চালক ও গাড়ির মালিকের মিলনমেলা</div>
+        <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"color:"#52718F"৪}>চট্টগ্রাম জেলার চালক ও গাড়ির মালিকের মিলনমেলা</div>
         <h1 style={{fontSize:"clamp(27px,5vw,43px)",margin:"8px 0 17px"}}>Chattogram Driver Bazar BD</h1>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:15,alignItems:"center"}}>
         <div>
           <h2 style={{fontSize:25,margin:"0 0 8px"}}>আপনার প্রয়োজনের ড্রাইভার ও চাকরি খুঁজুন</h2>
-          <p style={{lineHeight:1.8,color:"#DCE7F2",margin:0}}>চট্টগ্রাম জেলার ড্রাইভার এবং গাড়ির মালিকদের জন্য সহজ কর্মসংস্থান প্ল্যাটফর্ম।</p>
+          <p style={{lineHeight:1.8,color:"#52677D",margin:0}}>চট্টগ্রাম জেলার ড্রাইভার এবং গাড়ির মালিকদের জন্য সহজ কর্মসংস্থান প্ল্যাটফর্ম।</p>
         </div>
         <div style={{background:"#DCE7F2",color:C.navy,borderRadius:15,minHeight:150,display:"grid",placeItems:"center",padding:15,textAlign:"center"}}>
           <CarFront size={58}/><b>গাড়ি ও ড্রাইভার</b><span style={{fontSize:12}}>বিশ্বস্ত কাজের সংযোগ</span>

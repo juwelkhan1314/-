@@ -330,9 +330,7 @@ function OwnerDashboard({user,profile,refresh}) {
     if(!error){setOffer({driver_id:"",title:"",vehicle_type:"প্রাইভেট কার",work_type:"daily",location:"",proposed_pay:"",details:"",start_at:""});load();}
   };
   const setAppStatus=async(id,status)=>{
-    const {error}=await supabase.from("applications").update({status}).eq("id",id);
-    setMsg(error?error.message:"আবেদনের অবস্থা পরিবর্তন হয়েছে।");load();
-  };
+ const {error}=await supabase.from("owner_offers").insert({...offer,start_at:offer.start_at||null,proposed_pay:offer.proposed_pay?Number(offer.proposed_pay):null,owner_id:user.id,status:"pending"});
   const [privateInfo,setPrivateInfo]=useState({});
   const reveal=async driverId=>{
     const {data,error}=await supabase.rpc("get_driver_private_contact",{p_driver_id:driverId});

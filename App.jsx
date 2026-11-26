@@ -508,6 +508,7 @@ function App() {
     </main>
   </div>
 );
+}
 const mainStyle={maxWidth:1120,margin:"auto",padding:"24px 16px"};
 const cardsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:14};
 const cardStyle={background:"#fff",border:`1px solid ${C.border}`,borderRadius:13,padding:16,display:"grid",gap:8,alignContent:"start"};

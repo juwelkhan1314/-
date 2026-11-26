@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import {
-  Menu, X, UserRound, BriefcaseBusiness, CarFront, ClipboardList,
-  ShieldCheck, Plus, Search, MapPin, Clock3, LogOut, Bell, Trash2,
-  Pencil, Send, FileText, CheckCircle, XCircle, Phone, Camera, Upload,
-  CalendarClock, UserPlus
+  Menu, BriefcaseBusiness, CarFront,
+  Search, MapPin, Clock3, LogOut, Trash2,
+  Pencil, FileText, CheckCircle, XCircle, Phone,
+  CalendarClock
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
@@ -86,7 +86,7 @@ function Header({user, role, signOut}) {
         <span style={{fontSize:22,fontWeight:900,lineHeight:1.08}}>Chattogram<br/>Driver Bazar BD<small style={{display:"block",fontSize:12,marginTop:5}}>চালক ও গাড়ির মালিকের এক প্লাটফর্মে</small></span>
       </Link>
       <button onClick={()=>setOpen(!open)} style={{display:"none",border:0,background:"#EAF4FF",color:"#07366B",padding:10,borderRadius:9}} className="cdb-menu"><Menu/></button>
-      <nav className="cdb-nav" style={{display:"flex",gap:22,alignItems:"center",flexWrap:"wrap"}}>
+      <nav className={`cdb-nav ${open ? "open" : ""}`} style={{display:"flex",gap:22,alignItems:"center",flexWrap:"wrap"}}>
         <NavLink to="/" style={({isActive})=>({...navStyle({isActive}),background:isActive?"#0865B8":"transparent",color:isActive?"#fff":"#152B45",padding:"12px 17px",borderRadius:10,boxShadow:isActive?"0 3px 9px #0755a033":"none"})}>⌂ হোম</NavLink>
         <NavLink to="/drivers" style={navStyle}>ড্রাইভার খুঁজুন</NavLink>
         <NavLink to="/jobs" style={navStyle}>ড্রাইভার চাকরি</NavLink>
@@ -109,7 +109,7 @@ function Home() {
     {to:"/duties",icon:<CalendarClock size={39}/>,title:"বদলি ডিউটি পোস্ট",desc:"অস্থায়ী ও দৈনিক ডিউটি খুঁজুন",cta:"ডিউটি দেখুন"},
     {to:"/guest-job",icon:<FileText size={39}/>,title:"রেজিস্ট্রেশন ছাড়া মালিকের চাকরি পোস্ট",desc:"মালিকের তথ্য যাচাই করে চাকরির পোস্টের আবেদন দিন",cta:"এখনই পোস্ট করুন"}
   ];
-  return <main style={{background:"linear-gradient(180deg,#F1F8FF 0%,#FFFFFF 65%,#EAF5FF 100%)",paddingBottom:0}}>
+  return <div style={{background:"linear-gradient(180deg,#F1F8FF 0%,#FFFFFF 65%,#EAF5FF 100%)",paddingBottom:0}}>
     <section className="cdb-hero" style={{
       maxWidth:1440,margin:"0 auto",position:"relative",overflow:"hidden",
       minHeight:590,display:"flex",alignItems:"center",padding:"35px 3.2%",
@@ -131,9 +131,9 @@ function Home() {
         </div>
       </div>
     </section>
-    <section style={{maxWidth:1200,margin:"0 auto",padding:"18px 22px 24px"}}>
+    <section style={{maxWidth:1200,margin:"0 auto",padding:"18px 22px 28px"}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:13}} className="cdb-services">
-        {actions.map((a,i)=><Link key={a.to} to={a.to} style={{textDecoration:"none",background:"#fff",border:"1px solid #D8E8F7",borderRadius:19,padding:"19px 13px 17px",minHeight:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",gap:9,textAlign:"center",color:"#092F61",boxShadow:"0 5px 14px #123c6018"}}>
+        {actions.map((a)=><Link key={a.to} to={a.to} style={{textDecoration:"none",background:"#fff",border:"1px solid #D8E8F7",borderRadius:19,padding:"19px 13px 17px",minHeight:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",gap:9,textAlign:"center",color:"#092F61",boxShadow:"0 5px 14px #123c6018"}}>
           <span style={{width:92,height:92,borderRadius:"50%",background:"#D9EEFF",display:"grid",placeItems:"center",color:"#0755A0"}}>{a.icon}</span>
           <b style={{fontSize:21,lineHeight:1.35}}>{a.title}</b>
           <span style={{fontSize:16,color:"#25384E",lineHeight:1.5}}>{a.desc}</span>
@@ -141,16 +141,33 @@ function Home() {
         </Link>)}
       </div>
     </section>
-    <section style={{background:"linear-gradient(180deg,#087BCF 0%,#07366B 20%,#062C58 100%)",color:"#fff",padding:"32px 20px 25px",textAlign:"center",borderTop:"7px solid #35B7F4",position:"relative",overflow:"hidden"}}>
+    <style>{`@media(max-width:850px){.cdb-hero{min-height:520px!important;background-position:58% center!important}.cdb-services{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cdb-services a{min-height:235px!important}}@media(max-width:560px){.cdb-hero{min-height:620px!important;align-items:flex-start!important;padding:25px 18px!important;background-image:linear-gradient(180deg,rgba(235,247,255,.98) 0%,rgba(235,247,255,.94) 43%,rgba(235,247,255,.1) 100%),url('${import.meta.env.BASE_URL}cdb-hero.png')!important;background-position:60% center!important}.cdb-hero>div{width:100%!important}.cdb-services{gap:10px!important}.cdb-services a{padding:14px 8px!important;min-height:225px!important}.cdb-services b{font-size:16px!important}.cdb-services span:nth-child(3){font-size:13px!important}.cdb-services span:first-child{width:66px!important;height:66px!important}.cdb-services span:first-child svg{width:30px!important;height:30px!important}}`}</style>
+  </div>;
+}
+
+function Footer() {
+  return (
+    <footer style={{
+      background: "linear-gradient(180deg,#087BCF 0%,#07366B 20%,#062C58 100%)",
+      color: "#fff",
+      padding: "32px 20px 25px",
+      textAlign: "center",
+      borderTop: "7px solid #35B7F4",
+      marginTop: "auto",
+      flexShrink: 0
+    }}>
       <div style={{maxWidth:1100,margin:"auto",display:"flex",justifyContent:"space-between",alignItems:"center",gap:20,flexWrap:"wrap"}}>
         <CarFront size={76} strokeWidth={1.4}/>
-        <div><div style={{fontSize:20,fontWeight:900}}>© Chattogram Driver Bazar BD · চট্টগ্রাম জেলা</div><div style={{fontSize:17,marginTop:8}}>বিশ্বস্ত সংযোগ, নিরাপদ ভবিষ্যৎ</div></div>
+        <div>
+          <div style={{fontSize:20,fontWeight:900}}>© Chattogram Driver Bazar BD · চট্টগ্রাম জেলা</div>
+          <div style={{fontSize:17,marginTop:8}}>বিশ্বস্ত সংযোগ, নিরাপদ ভবিষ্যৎ</div>
+        </div>
         <div style={{fontSize:45}}>🌉</div>
       </div>
-    </section>
-    <style>{`@media(max-width:850px){.cdb-hero{min-height:520px!important;background-position:58% center!important}.cdb-services{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cdb-services a{min-height:235px!important}}@media(max-width:560px){.cdb-hero{min-height:620px!important;align-items:flex-start!important;padding:25px 18px!important;background-image:linear-gradient(180deg,rgba(235,247,255,.98) 0%,rgba(235,247,255,.94) 43%,rgba(235,247,255,.1) 100%),url('${import.meta.env.BASE_URL}cdb-hero.png')!important;background-position:60% center!important}.cdb-hero>div{width:100%!important}.cdb-services{gap:10px!important}.cdb-services a{padding:14px 8px!important;min-height:225px!important}.cdb-services b{font-size:16px!important}.cdb-services span:nth-child(3){font-size:13px!important}.cdb-services span:first-child{width:66px!important;height:66px!important}.cdb-services span:first-child svg{width:30px!important;height:30px!important}}`}</style>
-  </main>;
+    </footer>
+  );
 }
+
 function Auth({mode, refresh}) {
   const nav = useNavigate();
   const params = new URLSearchParams(window.location.search);
@@ -180,7 +197,7 @@ function Auth({mode, refresh}) {
       }
     } catch(e) {setMsg(e.message || "সমস্যা হয়েছে");setErr(true);}
   };
-  return <main style={centerPage}><form onSubmit={submit} style={authBox}>
+  return <div style={centerPage}><form onSubmit={submit} style={authBox}>
     <h1 style={{marginTop:0,color:C.navy}}>{mode==="register"?"নতুন অ্যাকাউন্ট":"লগইন"}</h1>
     {mode==="register" && <>
       <SelectField label="অ্যাকাউন্টের ধরন" value={role} onChange={e=>setRole(e.target.value)} options={[{value:"driver",label:"ড্রাইভার"},{value:"owner",label:"গাড়ির মালিক"}]}/>
@@ -192,16 +209,16 @@ function Auth({mode, refresh}) {
     <Btn type="submit">{mode==="register"?"রেজিস্ট্রেশন করুন":"লগইন করুন"}</Btn>
     <Notice text={msg} error={err}/>
     <p>{mode==="register"?<Link to="/login">আগে অ্যাকাউন্ট আছে? লগইন</Link>:<Link to="/register">নতুন অ্যাকাউন্ট খুলুন</Link>}</p>
-  </form></main>;
+  </form></div>;
 }
 const centerPage={minHeight:"65vh",display:"grid",placeItems:"center",padding:16};
 const authBox={background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,padding:22,width:"min(100%,430px)",display:"grid",gap:13};
 
 function GuestJobPost() {
-  return <main style={mainStyle}><Panel title="রেজিস্ট্রেশন ছাড়া মালিকের চাকরি পোস্ট">
+  return <div style={mainStyle}><Panel title="রেজিস্ট্রেশন ছাড়া মালিকের চাকরি পোস্ট">
     <Notice text="এই সুবিধার জন্য মালিকের নাম ও মোবাইল নম্বর যাচাই এবং অ্যাডমিন অনুমোদনের ব্যবস্থা তৈরি করতে হবে। নিরাপদ যাচাই ব্যবস্থা চালু না হওয়া পর্যন্ত এই ফর্ম থেকে পোস্ট প্রকাশ করা হচ্ছে না." error/>
     <p style={{color:C.muted,lineHeight:1.8}}>পরবর্তী ধাপে আমরা OTP যাচাই ও অ্যাডমিন অনুমোদনের ডাটাবেস ব্যবস্থা যোগ করে এই ফর্মটি চালু করব।</p>
-  </Panel></main>;
+  </Panel></div>;
 }
 
 function ListingPage({kind,user}) {
@@ -218,7 +235,7 @@ function ListingPage({kind,user}) {
     const {error}=await supabase.from("applications").insert({listing_type:table,listing_id:item.id,driver_id:user.id,message:""});
     setMsg(error?error.message:"আবেদন পাঠানো হয়েছে।");
   };
-  return <main style={mainStyle}><h1>{kind==="jobs"?"ড্রাইভার চাকরি":"বদলি ডিউটি"}</h1><Notice text={msg} error={!!msg&&/error|permission|denied|violates/i.test(msg)}/>
+  return <div style={mainStyle}><h1>{kind==="jobs"?"ড্রাইভার চাকরি":"বদলি ডিউটি"}</h1><Notice text={msg} error={!!msg&&/error|permission|denied|violates/i.test(msg)}/>
     {busy?"লোড হচ্ছে...":items.length===0?"এখনো কোনো পোস্ট নেই।":<div style={cardsGrid}>{items.map(x=><article key={x.id} style={cardStyle}>
       <h3>{x.title||`${x.vehicle_type||"গাড়ি"} ডিউটি`}</h3>
       <p><MapPin size={15}/> {x.location||x.start_location||"ঠিকানা উল্লেখ নেই"}</p>
@@ -228,7 +245,7 @@ function ListingPage({kind,user}) {
       {(x.description||x.details)&&<p>{x.description||x.details}</p>}
       <Btn onClick={()=>apply(x)} disabled={!user}>আবেদন করুন</Btn>
     </article>)}</div>}
-  </main>;
+  </div>;
 }
 
 function DriverSearch() {
@@ -237,13 +254,13 @@ function DriverSearch() {
     const {data,error}=await supabase.rpc("get_public_driver_profiles");
     if(error)setMsg(error.message);else setDrivers(data||[]);
   })();},[]);
-  return <main style={mainStyle}><h1>অভিজ্ঞ ড্রাইভার খুঁজুন</h1><Notice text={msg} error/>
+  return <div style={mainStyle}><h1>অভিজ্ঞ ড্রাইভার খুঁজুন</h1><Notice text={msg} error/>
     <p style={{color:C.muted}}>শুধু ড্রাইভারের প্রকাশ্য তথ্য দেখানো হবে। ব্যক্তিগত তথ্য অনুমতি ছাড়া প্রকাশ করা হবে না।</p>
     <div style={cardsGrid}>{drivers.map(d=><article key={d.driver_id} style={cardStyle}>
       {d.photo_path&&<img src={publicPhoto(d.photo_path)} alt="ড্রাইভার" style={{width:82,height:82,objectFit:"cover",borderRadius:"50%"}}/>}
       <h3>{d.full_name||"নাম দেওয়া হয়নি"}</h3><p>{d.experience_years||0} বছর অভিজ্ঞতা</p><p>{d.skills||"দক্ষতা উল্লেখ নেই"}</p><p><MapPin size={14}/> {d.address||"ঠিকানা নেই"}</p>
     </article>)}</div>
-  </main>;
+  </div>;
 }
 
 function DriverProfile({user,profile,refresh}) {
@@ -459,7 +476,7 @@ function PrivateInfo({info}) {
 }
 function Dashboard({user,profile,refresh}) {
   const role=profile?.role||user.user_metadata?.role||"driver";
-  return <main style={mainStyle}><h1>আমার ড্যাশবোর্ড</h1>{role==="owner"?<OwnerDashboard user={user} profile={profile}/>:<DriverDashboard user={user} profile={profile} refresh={refresh}/>}</main>;
+  return <div style={mainStyle}><h1>আমার ড্যাশবোর্ড</h1>{role==="owner"?<OwnerDashboard user={user} profile={profile}/>:<DriverDashboard user={user} profile={profile} refresh={refresh}/>}</div>;
 }
 function App() {
   const [user,setUser]=useState(null),[profile,setProfile]=useState(null),[loading,setLoading]=useState(true);
@@ -482,32 +499,36 @@ function App() {
   const signOut=async()=>{await supabase.auth.signOut();setUser(null);setProfile(null);};
   if(loading)return <div style={{padding:30,textAlign:"center"}}>লোড হচ্ছে...</div>;
   return (
-  <div
-    className="app-shell"
-    style={{
-      minHeight: "100vh",
-      background: C.bg,
-      color: C.navy,
-      fontFamily: "'Hind Siliguri',Arial,sans-serif"
-    }}
-  >
-    <Header user={user} role={profile?.role} signOut={signOut}/>
+    <div
+      className="app-shell"
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "#062C58",
+        color: C.navy,
+        fontFamily: "'Hind Siliguri',Arial,sans-serif"
+      }}
+    >
+      <Header user={user} role={profile?.role} signOut={signOut}/>
 
-    <main className="app-main">
-      <Routes>
-        <Route path="/" element={<Home/>}/>
-        <Route path="/drivers" element={<DriverSearch/>}/>
-        <Route path="/jobs" element={<ListingPage kind="jobs" user={user}/>}/>
-        <Route path="/duties" element={<ListingPage kind="duties" user={user}/>}/>
-        <Route path="/guest-job" element={<GuestJobPost/>}/>
-        <Route path="/login" element={<Auth mode="login" refresh={refresh}/>}/>
-        <Route path="/register" element={<Auth mode="register" refresh={refresh}/>}/>
-        <Route path="/dashboard" element={user?<Dashboard user={user} profile={profile} refresh={refresh}/>:<Auth mode="login" refresh={refresh}/>}/>
-        <Route path="*" element={<Home/>}/>
-      </Routes>
-    </main>
-  </div>
-);
+      <main className="app-main" style={{ flex: "1 0 auto", background: C.bg }}>
+        <Routes>
+          <Route path="/" element={<Home/>}/>
+          <Route path="/drivers" element={<DriverSearch/>}/>
+          <Route path="/jobs" element={<ListingPage kind="jobs" user={user}/>}/>
+          <Route path="/duties" element={<ListingPage kind="duties" user={user}/>}/>
+          <Route path="/guest-job" element={<GuestJobPost/>}/>
+          <Route path="/login" element={<Auth mode="login" refresh={refresh}/>}/>
+          <Route path="/register" element={<Auth mode="register" refresh={refresh}/>}/>
+          <Route path="/dashboard" element={user?<Dashboard user={user} profile={profile} refresh={refresh}/>:<Auth mode="login" refresh={refresh}/>}/>
+          <Route path="*" element={<Home/>}/>
+        </Routes>
+      </main>
+
+      <Footer/>
+    </div>
+  );
 }
 const mainStyle={maxWidth:1120,margin:"auto",padding:"24px 16px"};
 const cardsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:14};

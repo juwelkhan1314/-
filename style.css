@@ -51,3 +51,7 @@ footer, .footer {
   margin-top: auto;
   flex-shrink: 0;
 }
+html, body {
+  background-color: #062C58 !important;
+  overflow-x: hidden;
+}

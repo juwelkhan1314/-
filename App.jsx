@@ -1,1053 +1,482 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Link, NavLink, Route, Routes, useNavigate
 } from "react-router-dom";
 import {
   Menu, X, UserRound, BriefcaseBusiness, CarFront,
-  ClipboardList, ShieldCheck, Plus, Search, MapPin, Clock3
+  ClipboardList, ShieldCheck, Plus, Search, MapPin,
+  Clock3, LogOut, Bell, Trash2, Pencil, Send, FileText,
+  CheckCircle, XCircle, Phone, Camera, Upload
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
-const nav = [
-  ["/", "হোম"],
-  ["/jobs", "স্থায়ী চাকরি"],
-  ["/duties", "বদলি ডিউটি"],
-  ["/bookings", "ড্রাইভার বুকিং"],
-  ["/drivers", "ড্রাইভার খুঁজুন"]
-];
+const C = {
+  green: "#145c4b", dark: "#18342e", pale: "#eef7f2",
+  border: "#dce7e0", muted: "#65756d", red: "#b42318",
+  white: "#fff", bg: "#f7faf8"
+};
 
-function getRole(user) {
-  return user?.user_metadata?.role === "owner" ? "owner" : "driver";
+function Btn({ children, onClick, type="button", disabled=false, tone="green" }) {
+  return <button type={type} disabled={disabled} onClick={onClick} style={{
+    border: tone === "light" ? `1px solid ${C.border}` : 0,
+    background: tone === "red" ? "#b42318" : tone === "light" ? "#fff" : C.green,
+    color: tone === "light" ? C.dark : "#fff", borderRadius: 9,
+    padding: "10px 14px", fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? .6 : 1, display: "inline-flex", gap: 7,
+    alignItems: "center", justifyContent: "center"
+  }}>{children}</button>;
+}
+function Field({ label, ...props }) {
+  return <label style={{display:"grid",gap:5,fontSize:14,fontWeight:600,color:C.dark}}>
+    {label}
+    {props.as === "textarea"
+      ? <textarea {...props} as={undefined} style={{padding:11,border:`1px solid ${C.border}`,borderRadius:8,minHeight:85,font:"inherit",...props.style}} />
+      : <input {...props} as={undefined} style={{padding:11,border:`1px solid ${C.border}`,borderRadius:8,font:"inherit",minWidth:0,...props.style}} />}
+  </label>;
+}
+function SelectField({label, options, ...props}) {
+  return <label style={{display:"grid",gap:5,fontSize:14,fontWeight:600,color:C.dark}}>
+    {label}<select {...props} style={{padding:11,border:`1px solid ${C.border}`,borderRadius:8,font:"inherit",background:"#fff"}}>
+      {options.map(x => <option key={x.value} value={x.value}>{x.label}</option>)}
+    </select>
+  </label>;
+}
+function Panel({title, children, right}) {
+  return <section style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginBottom:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:13}}>
+      <h2 style={{fontSize:19,margin:0,color:C.dark}}>{title}</h2>{right}
+    </div>{children}
+  </section>;
+}
+function Notice({text, error}) {
+  if (!text) return null;
+  return <div style={{padding:11,borderRadius:8,margin:"10px 0",background:error?"#fff0ef":C.pale,color:error?C.red:C.green}}>{text}</div>;
+}
+function money(v) { return v === null || v === undefined || v === "" ? "আলোচনা সাপেক্ষ" : `৳${v}`; }
+function publicPhoto(path) {
+  if (!path) return "";
+  return supabase.storage.from("driver-photos").getPublicUrl(path).data.publicUrl;
+}
+async function uploadFile(bucket, userId, file, prefix) {
+  if (!file) return null;
+  const ext = file.name.split(".").pop() || "file";
+  const path = `${userId}/${prefix}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {upsert:true});
+  if (error) throw error;
+  return path;
 }
 
-function Header({ user, onLogout }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <header className="header">
-      <div className="navwrap">
-        <Link to="/" className="brand">
-          <span className="brandmark">চা</span>
-          <span>
-            Chattogram <b>Driver Bazar</b>
-            <small>চালক ও গাড়ির মালিকের মিলনমেলা</small>
-          </span>
-        </Link>
-
-        <button className="menuBtn" onClick={() => setOpen(!open)}>
-          {open ? <X /> : <Menu />}
-        </button>
-
-        <nav className={open ? "nav open" : "nav"}>
-          {nav.map(([to, label]) => (
-            <NavLink key={to} to={to} onClick={() => setOpen(false)}>
-              {label}
-            </NavLink>
-          ))}
-
-          {user ? (
-            <>
-              <NavLink to="/dashboard">ড্যাশবোর্ড</NavLink>
-              <button className="linkBtn" onClick={onLogout}>
-                লগআউট
-              </button>
-            </>
-          ) : (
-            <>
-              <NavLink to="/login">লগইন</NavLink>
-              <Link className="navJoin" to="/register">নিবন্ধন</Link>
-            </>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
+function Header({user, role, signOut}) {
+  const [open,setOpen] = useState(false);
+  return <header style={{background:"#fff",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:5}}>
+    <div style={{maxWidth:1120,margin:"auto",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+      <Link to="/" style={{display:"flex",alignItems:"center",gap:9,textDecoration:"none",color:C.dark,fontWeight:800,fontSize:19}}>
+        <span style={{background:C.green,color:"#fff",borderRadius:10,padding:"7px 10px"}}>চা</span>
+        Chattogram Driver Bazar
+      </Link>
+      <button onClick={()=>setOpen(!open)} style={{display:"none",border:0,background:"none"}} className="mobile-menu"><Menu/></button>
+      <nav style={{display:"flex",gap:15,alignItems:"center",flexWrap:"wrap"}}>
+        <NavLink to="/" style={navStyle}>হোম</NavLink>
+        <NavLink to="/jobs" style={navStyle}>চাকরি</NavLink>
+        <NavLink to="/duties" style={navStyle}>দৈনিক ডিউটি</NavLink>
+        {user ? <><NavLink to="/dashboard" style={navStyle}>ড্যাশবোর্ড</NavLink><button onClick={signOut} style={{border:0,background:"none",color:C.green,fontWeight:700,cursor:"pointer"}}><LogOut size={16}/> লগআউট</button></>
+          : <><NavLink to="/login" style={navStyle}>লগইন</NavLink><NavLink to="/register" style={navStyle}>রেজিস্ট্রেশন</NavLink></>}
+      </nav>
+    </div>
+  </header>;
 }
+const navStyle = ({isActive}) => ({textDecoration:"none",color:isActive?C.green:C.dark,fontWeight:700});
 
 function Home() {
-  return (
-    <>
-      <section className="hero">
-        <div className="heroInner">
-          <div className="eyebrow">চট্টগ্রামের ড্রাইভার সার্ভিস প্ল্যাটফর্ম</div>
-          <h1>আপনার প্রয়োজনের<br /><em>সঠিক ড্রাইভার</em> খুঁজুন</h1>
-          <p>
-            স্থায়ী চাকরি, অস্থায়ী ড্রাইভার বুকিং এবং বদলি ডিউটি—
-            সব এক জায়গায়।
-          </p>
-          <div className="heroActions">
-            <Link className="btn primary" to="/drivers">
-              ড্রাইভার খুঁজুন <Search size={18} />
-            </Link>
-            <Link className="btn light" to="/register">
-              ফ্রি নিবন্ধন করুন
-            </Link>
-          </div>
-          <div className="heroNote">
-            <ShieldCheck size={17} /> যাচাই ও নিরাপত্তাকে গুরুত্ব দিয়ে তৈরি
-          </div>
-        </div>
-
-        <div className="heroArt">
-          <div className="circle"></div>
-          <div className="road"></div>
-          <div className="car"><CarFront size={112} /></div>
-          <div className="floatingTag tagOne">✓ ড্রাইভার প্রোফাইল</div>
-          <div className="floatingTag tagTwo">চট্টগ্রাম জুড়ে</div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="sectionHead">
-          <div>
-            <div className="eyebrow dark">আমাদের সেবা</div>
-            <h2>আপনার প্রয়োজন, আমাদের সমাধান</h2>
-          </div>
-          <p>ড্রাইভার ও গাড়ির মালিক—দুই পক্ষের জন্য সহজ ব্যবস্থা।</p>
-        </div>
-
-        <div className="serviceGrid">
-          <Service
-            icon={<BriefcaseBusiness />}
-            title="স্থায়ী ড্রাইভার চাকরি"
-            desc="বেতন, কর্মঘণ্টা ও শর্ত দেখে চাকরিতে আবেদন করুন।"
-            to="/jobs"
-            action="চাকরি দেখুন"
-          />
-          <Service
-            icon={<CarFront />}
-            title="অস্থায়ী ড্রাইভার বুকিং"
-            desc="ঘণ্টা, দিন, সপ্তাহ বা মাসের জন্য ড্রাইভার খুঁজুন।"
-            to="/bookings"
-            action="বুকিং দেখুন"
-          />
-          <Service
-            icon={<ClipboardList />}
-            title="বদলি ডিউটি"
-            desc="নিয়মিত ড্রাইভার ছুটিতে? বদলি ড্রাইভারের প্রয়োজন জানান।"
-            to="/duties"
-            action="ডিউটি দেখুন"
-          />
-        </div>
-      </section>
-
-      <section className="cta">
-        <div>
-          <div className="eyebrow">আজই শুরু করুন</div>
-          <h2>আপনি কি ড্রাইভার, নাকি গাড়ির মালিক?</h2>
-          <p>নিজের প্রয়োজন অনুযায়ী বিনামূল্যে অ্যাকাউন্ট খুলুন।</p>
-        </div>
-        <Link className="btn light" to="/register">
-          অ্যাকাউন্ট খুলুন <Plus size={18} />
-        </Link>
-      </section>
-    </>
-  );
+  return <main style={{maxWidth:1120,margin:"auto",padding:"30px 16px"}}>
+    <section style={{background:C.green,color:"#fff",padding:"42px 24px",borderRadius:20}}>
+      <h1 style={{fontSize:"clamp(28px,5vw,44px)",margin:"0 0 12px"}}>চট্টগ্রামে ড্রাইভার খুঁজুন, কাজ খুঁজুন</h1>
+      <p style={{fontSize:17,lineHeight:1.8,maxWidth:650}}>ড্রাইভার ও গাড়ির মালিকদের জন্য সহজ কর্মসংস্থান প্ল্যাটফর্ম। স্থায়ী চাকরি, দৈনিক ডিউটি এবং সরাসরি কাজের অনুরোধ।</p>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:20}}>
+        <Link to="/jobs" style={heroLink}>চাকরি দেখুন</Link><Link to="/duties" style={heroLink}>দৈনিক ডিউটি দেখুন</Link><Link to="/register" style={{...heroLink,background:"#fff",color:C.green}}>অ্যাকাউন্ট খুলুন</Link>
+      </div>
+    </section>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,marginTop:22}}>
+      {["ড্রাইভার প্রোফাইল তৈরি","মালিকের কাজের পোস্ট","সরাসরি কাজের অনুরোধ"].map((x,i)=><div key={x} style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,padding:18}}><h3>{x}</h3><p style={{color:C.muted,lineHeight:1.7}}>{["নিজের অভিজ্ঞতা ও দক্ষতা তুলে ধরুন।","স্থায়ী চাকরি বা দৈনিক ডিউটি প্রকাশ করুন।","অনুরোধ গ্রহণের আগে ব্যক্তিগত তথ্য গোপন থাকবে।"][i]}</p></div>)}
+    </div>
+  </main>;
 }
+const heroLink = {background:"#dff3e8",color:C.dark,textDecoration:"none",padding:"11px 16px",borderRadius:9,fontWeight:800};
 
-function Service({ icon, title, desc, to, action }) {
-  return (
-    <article className="serviceCard">
-      <div className="serviceIcon">{icon}</div>
-      <h3>{title}</h3>
-      <p>{desc}</p>
-      <Link to={to}>{action} <span>→</span></Link>
-    </article>
-  );
-}
-
-function Auth({ mode, onAuth }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("driver");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  async function submit(e) {
-    e.preventDefault();
-    setMsg("");
-
-    if (!isSupabaseConfigured) {
-      setMsg("ডেটাবেস সংযোগ পাওয়া যায়নি।");
-      return;
-    }
-
-    setBusy(true);
-
+function Auth({mode, refresh}) {
+  const nav = useNavigate();
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [name,setName]=useState("");
+  const [phone,setPhone]=useState("");
+  const [role,setRole]=useState("driver");
+  const [msg,setMsg]=useState("");
+  const [err,setErr]=useState(false);
+  const submit = async e => {
+    e.preventDefault(); setMsg(""); setErr(false);
+    if (!isSupabaseConfigured) {setMsg("Supabase কনফিগার করা নেই।");setErr(true);return;}
     try {
-      if (mode === "login") {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
+      if (mode==="register") {
+        const {data,error}=await supabase.auth.signUp({
+          email,password,
+          options:{data:{full_name:name,phone,role}}
         });
-
-        if (error) throw error;
-        onAuth(data.user);
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              role
-            }
-          }
-        });
-
-        if (error) throw error;
-
-        if (data.session) {
-          onAuth(data.user);
-        } else {
-          setMsg("নিবন্ধন সফল হয়েছে। ইমেইল যাচাই করে লগইন করুন।");
+        if(error) throw error;
+        if(data.user) {
+          const {error:pe}=await supabase.from("profiles").upsert({
+            id:data.user.id,role,full_name:name,phone
+          },{onConflict:"id"});
+          if(pe) throw pe;
         }
-      }
-    } catch (err) {
-      setMsg(err.message || "সমস্যা হয়েছে। আবার চেষ্টা করুন।");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="authPage">
-      <form className="authCard" onSubmit={submit}>
-        <div className="serviceIcon"><UserRound /></div>
-        <h1>{mode === "login" ? "অ্যাকাউন্টে প্রবেশ" : "নতুন অ্যাকাউন্ট খুলুন"}</h1>
-
-        {mode === "register" && (
-          <>
-            <label>
-              আপনার নাম
-              <input
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="সম্পূর্ণ নাম"
-              />
-            </label>
-
-            <label>
-              অ্যাকাউন্টের ধরন
-              <select value={role} onChange={e => setRole(e.target.value)}>
-                <option value="driver">ড্রাইভার</option>
-                <option value="owner">গাড়ির মালিক</option>
-              </select>
-            </label>
-          </>
-        )}
-
-        <label>
-          ইমেইল
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="name@example.com"
-          />
-        </label>
-
-        <label>
-          পাসওয়ার্ড
-          <input
-            required
-            minLength={8}
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="কমপক্ষে ৮ অক্ষর"
-          />
-        </label>
-
-        <button className="btn primary full" disabled={busy}>
-          {busy ? "অপেক্ষা করুন..." : mode === "login" ? "লগইন" : "নিবন্ধন করুন"}
-        </button>
-
-        {msg && <p className="formMsg">{msg}</p>}
-
-        <p className="switchAuth">
-          {mode === "login" ? "অ্যাকাউন্ট নেই? " : "আগে থেকেই অ্যাকাউন্ট আছে? "}
-          <Link to={mode === "login" ? "/register" : "/login"}>
-            {mode === "login" ? "নিবন্ধন করুন" : "লগইন করুন"}
-          </Link>
-        </p>
-      </form>
-    </main>
-  );
-}
-
-function Listing({ kind }) {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const configs = {
-    jobs: {
-      title: "স্থায়ী ড্রাইভার চাকরি",
-      sub: "নিয়মিত চাকরির সুযোগ খুঁজুন",
-      table: "jobs",
-      empty: "এখনো কোনো চাকরির বিজ্ঞপ্তি নেই।"
-    },
-    duties: {
-      title: "বদলি ডিউটি",
-      sub: "অস্থায়ী বদলি ড্রাইভারের কাজ খুঁজুন",
-      table: "substitute_duties",
-      empty: "এখনো কোনো বদলি ডিউটির বিজ্ঞপ্তি নেই।"
-    },
-    bookings: {
-      title: "অস্থায়ী ড্রাইভার বুকিং",
-      sub: "স্বল্প বা দীর্ঘ সময়ের জন্য ড্রাইভার খুঁজুন",
-      table: "booking_requests",
-      empty: "এখনো কোনো বুকিং অনুরোধ নেই।"
-    }
-  };
-
-  const cfg = configs[kind];
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadItems() {
-      setLoading(true);
-      setError("");
-
-      const { data, error } = await supabase
-        .from(cfg.table)
-        .select("*")
-        .eq("status", "open")
-        .order("created_at", { ascending: false })
-        .limit(50);
-
-      if (!active) return;
-
-      if (error) {
-        setError("তথ্য আনা যায়নি: " + error.message);
+        setMsg("রেজিস্ট্রেশন হয়েছে। ইমেইল যাচাই করতে বললে যাচাই করে লগইন করুন।");
       } else {
-        setItems(data || []);
+        const {error}=await supabase.auth.signInWithPassword({email,password});
+        if(error) throw error;
+        await refresh(); nav("/dashboard");
       }
-
-      setLoading(false);
-    }
-
-    loadItems();
-
-    return () => {
-      active = false;
-    };
-  }, [cfg.table]);
-
-  return (
-    <main className="page">
-      <div className="pageTitle">
-        <div className="eyebrow dark">চাকরি ও কাজের তালিকা</div>
-        <h1>{cfg.title}</h1>
-        <p>{cfg.sub}</p>
-      </div>
-
-      <div className="toolbar">
-        <div className="searchBox">
-          <Search size={18} />
-          <input placeholder="এলাকা বা কাজের ধরন লিখুন" />
-        </div>
-        <Link className="btn primary" to="/login">
-          <Plus size={18} /> লগইন করুন
-        </Link>
-      </div>
-
-      {loading ? (
-        <p className="notice">তথ্য লোড হচ্ছে...</p>
-      ) : error ? (
-        <p className="notice">{error}</p>
-      ) : items.length === 0 ? (
-        <div className="empty">
-          <ClipboardList size={34} />
-          <h3>{cfg.empty}</h3>
-          <p>নতুন বিজ্ঞপ্তি প্রকাশ হলে এখানে দেখা যাবে।</p>
-        </div>
-      ) : (
-        <div className="listingGrid">
-          {items.map(item => (
-            <article className="listingCard" key={item.id}>
-              <span className="status">চলমান</span>
-              <h3>{item.title || item.vehicle_type || "ড্রাইভার প্রয়োজন"}</h3>
-              <p><MapPin size={15} /> {item.location || "অবস্থান উল্লেখ নেই"}</p>
-              <p>
-                <Clock3 size={15} />
-                {item.duty_date || item.start_at?.slice(0, 10) ||
-                  item.created_at?.slice(0, 10) || "তারিখ উল্লেখ নেই"}
-              </p>
-              <strong>
-                {item.salary || item.pay
-                  ? `৳ ${item.salary || item.pay}`
-                  : "পারিশ্রমিক আলোচনা সাপেক্ষে"}
-              </strong>
-              <p>{item.description || item.details || ""}</p>
-            </article>
-          ))}
-        </div>
-      )}
-    </main>
-  );
-}
-
-function OwnerPost({ user, kind }) {
-  const navigate = useNavigate();
-
-  const [form, setForm] = useState({
-    title: "",
-    vehicle_type: "",
-    location: "",
-    salary: "",
-    description: "",
-    duty_date: "",
-    start_time: "",
-    end_time: "",
-    pay: "",
-    destination: "",
-    start_at: "",
-    duration: "",
-    details: ""
-  });
-
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  const configs = {
-    jobs: { title: "স্থায়ী চাকরির বিজ্ঞপ্তি", table: "jobs" },
-    duties: { title: "বদলি ডিউটির বিজ্ঞপ্তি", table: "substitute_duties" },
-    bookings: { title: "ড্রাইভার বুকিং অনুরোধ", table: "booking_requests" }
+    } catch(e) {setMsg(e.message || "সমস্যা হয়েছে");setErr(true);}
   };
+  return <main style={centerPage}><form onSubmit={submit} style={authBox}>
+    <h1 style={{marginTop:0}}>{mode==="register"?"নতুন অ্যাকাউন্ট":"লগইন"}</h1>
+    {mode==="register" && <>
+      <Field label="আপনার নাম" value={name} onChange={e=>setName(e.target.value)} required/>
+      <Field label="মোবাইল নম্বর" value={phone} onChange={e=>setPhone(e.target.value)} required/>
+      <SelectField label="অ্যাকাউন্টের ধরন" value={role} onChange={e=>setRole(e.target.value)} options={[{value:"driver",label:"ড্রাইভার"},{value:"owner",label:"গাড়ির মালিক"}]}/>
+    </>}
+    <Field label="ইমেইল" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
+    <Field label="পাসওয়ার্ড" type="password" value={password} onChange={e=>setPassword(e.target.value)} required/>
+    <Btn type="submit" >{mode==="register"?"রেজিস্ট্রেশন করুন":"লগইন করুন"}</Btn>
+    <Notice text={msg} error={err}/>
+    <p>{mode==="register"?<Link to="/login">আগে অ্যাকাউন্ট আছে? লগইন</Link>:<Link to="/register">নতুন অ্যাকাউন্ট খুলুন</Link>}</p>
+  </form></main>;
+}
+const centerPage={minHeight:"65vh",display:"grid",placeItems:"center",padding:16};
+const authBox={background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,padding:22,width:"min(100%,430px)",display:"grid",gap:13};
 
-  const cfg = configs[kind];
-
-  function change(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
-
-  async function submit(e) {
-    e.preventDefault();
-    setMsg("");
-
-    if (getRole(user) !== "owner") {
-      setMsg("এই সুবিধাটি শুধু গাড়ির মালিকদের জন্য।");
-      return;
-    }
-
+function ListingPage({kind,user}) {
+  const [items,setItems]=useState([]);
+  const [busy,setBusy]=useState(true);
+  const [msg,setMsg]=useState("");
+  const table=kind==="jobs"?"jobs":"substitute_duties";
+  useEffect(()=>{(async()=>{
     setBusy(true);
-
-    try {
-      let payload;
-
-      if (kind === "jobs") {
-        payload = {
-          owner_id: user.id,
-          title: form.title,
-          vehicle_type: form.vehicle_type,
-          location: form.location,
-          salary: form.salary ? Number(form.salary) : null,
-          description: form.description
-        };
-      } else if (kind === "duties") {
-        payload = {
-          owner_id: user.id,
-          vehicle_type: form.vehicle_type,
-          location: form.location,
-          duty_date: form.duty_date,
-          start_time: form.start_time || null,
-          end_time: form.end_time || null,
-          pay: form.pay ? Number(form.pay) : null,
-          details: form.details
-        };
-      } else {
-        const startDate = new Date(form.start_at);
-
-        if (Number.isNaN(startDate.getTime())) {
-          throw new Error("সঠিক তারিখ ও সময় নির্বাচন করুন।");
-        }
-
-        payload = {
-          owner_id: user.id,
-          vehicle_type: form.vehicle_type,
-          location: form.location,
-          destination: form.destination || null,
-          start_at: startDate.toISOString(),
-          duration: form.duration,
-          pay: form.pay ? Number(form.pay) : null,
-          details: form.details
-        };
-      }
-
-      const { error } = await supabase
-        .from(cfg.table)
-        .insert(payload);
-
-      if (error) throw error;
-
-      setMsg("আপনার বিজ্ঞপ্তি প্রকাশ হয়েছে।");
-      setTimeout(() => navigate(`/${kind}`), 1200);
-    } catch (err) {
-      setMsg(err.message || "পোস্ট করা যায়নি।");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="page">
-      <div className="pageTitle">
-        <div className="eyebrow dark">গাড়ির মালিকের জন্য</div>
-        <h1>{cfg.title}</h1>
-        <p>প্রয়োজনীয় তথ্য পূরণ করে বিজ্ঞপ্তি প্রকাশ করুন।</p>
-      </div>
-
-      <form className="authCard" onSubmit={submit}>
-        {kind === "jobs" && (
-          <label>
-            চাকরির শিরোনাম
-            <input
-              name="title"
-              value={form.title}
-              onChange={change}
-              required
-              placeholder="যেমন: ব্যক্তিগত গাড়ির ড্রাইভার"
-            />
-          </label>
-        )}
-
-        <label>
-          গাড়ির ধরন
-          <select
-            name="vehicle_type"
-            value={form.vehicle_type}
-            onChange={change}
-            required
-          >
-            <option value="">গাড়ি নির্বাচন করুন</option>
-            <option value="কার">কার</option>
-            <option value="মাইক্রোবাস">মাইক্রোবাস</option>
-            <option value="জিপ">জিপ</option>
-            <option value="পিকআপ">পিকআপ</option>
-            <option value="অন্যান্য">অন্যান্য</option>
-          </select>
-        </label>
-
-        <label>
-          কাজের এলাকা
-          <input
-            name="location"
-            value={form.location}
-            onChange={change}
-            required
-            placeholder="যেমন: বায়েজিদ, চট্টগ্রাম"
-          />
-        </label>
-
-        {kind === "jobs" && (
-          <>
-            <label>
-              মাসিক বেতন (টাকা)
-              <input
-                name="salary"
-                type="number"
-                min="0"
-                value={form.salary}
-                onChange={change}
-                placeholder="যেমন: ১৫০০০"
-              />
-            </label>
-
-            <label>
-              কাজের বিবরণ
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={change}
-                rows={4}
-                placeholder="বেতন, কর্মঘণ্টা ও অন্যান্য শর্ত লিখুন"
-              />
-            </label>
-          </>
-        )}
-
-        {kind === "duties" && (
-          <>
-            <label>
-              ডিউটির তারিখ
-              <input
-                name="duty_date"
-                type="date"
-                value={form.duty_date}
-                onChange={change}
-                required
-              />
-            </label>
-
-            <label>
-              শুরুর সময়
-              <input
-                name="start_time"
-                type="time"
-                value={form.start_time}
-                onChange={change}
-              />
-            </label>
-
-            <label>
-              শেষের সময়
-              <input
-                name="end_time"
-                type="time"
-                value={form.end_time}
-                onChange={change}
-              />
-            </label>
-
-            <label>
-              পারিশ্রমিক (টাকা)
-              <input
-                name="pay"
-                type="number"
-                min="0"
-                value={form.pay}
-                onChange={change}
-              />
-            </label>
-
-            <label>
-              ডিউটির বিবরণ
-              <textarea
-                name="details"
-                value={form.details}
-                onChange={change}
-                rows={4}
-                placeholder="ডিউটির বিস্তারিত লিখুন"
-              />
-            </label>
-          </>
-        )}
-
-        {kind === "bookings" && (
-          <>
-            <label>
-              গন্তব্য
-              <input
-                name="destination"
-                value={form.destination}
-                onChange={change}
-                placeholder="কোথায় যেতে হবে?"
-              />
-            </label>
-
-            <label>
-              ডিউটি শুরুর তারিখ ও সময়
-              <input
-                name="start_at"
-                type="datetime-local"
-                value={form.start_at}
-                onChange={change}
-                required
-              />
-            </label>
-
-            <label>
-              কত সময়ের জন্য?
-              <select
-                name="duration"
-                value={form.duration}
-                onChange={change}
-                required
-              >
-                <option value="">সময় নির্বাচন করুন</option>
-                <option value="ঘণ্টাভিত্তিক">ঘণ্টাভিত্তিক</option>
-                <option value="অর্ধদিবস">অর্ধদিবস</option>
-                <option value="পূর্ণদিবস">পূর্ণদিবস</option>
-                <option value="দৈনিক">দৈনিক</option>
-                <option value="সাপ্তাহিক">সাপ্তাহিক</option>
-                <option value="মাসিক">মাসিক</option>
-                <option value="বিমানবন্দর যাতায়াত">বিমানবন্দর যাতায়াত</option>
-              </select>
-            </label>
-
-            <label>
-              পারিশ্রমিক (টাকা)
-              <input
-                name="pay"
-                type="number"
-                min="0"
-                value={form.pay}
-                onChange={change}
-              />
-            </label>
-
-            <label>
-              অতিরিক্ত নির্দেশনা
-              <textarea
-                name="details"
-                value={form.details}
-                onChange={change}
-                rows={4}
-                placeholder="প্রয়োজনীয় তথ্য লিখুন"
-              />
-            </label>
-          </>
-        )}
-
-        <button className="btn primary full" disabled={busy}>
-          {busy ? "প্রকাশ হচ্ছে..." : "বিজ্ঞপ্তি প্রকাশ করুন"}
-        </button>
-
-        {msg && <p className="formMsg">{msg}</p>}
-      </form>
-    </main>
-  );
-}
-
-function Dashboard({ user }) {
-  const role = getRole(user);
-
-  return (
-    <main className="page">
-      <div className="pageTitle">
-        <div className="eyebrow dark">আপনার অ্যাকাউন্ট</div>
-        <h1>ড্যাশবোর্ড</h1>
-        <p>স্বাগতম, {user?.user_metadata?.full_name || user?.email}</p>
-      </div>
-
-      <div className="dashboardGrid">
-        <Link className="dashTile" to="/profile">
-          <UserRound />
-          <h3>আমার প্রোফাইল</h3>
-          <p>নিজের তথ্য দেখুন ও পরিবর্তন করুন</p>
-        </Link>
-
-        {role === "owner" ? (
-          <>
-            <Link className="dashTile" to="/post/jobs">
-              <BriefcaseBusiness />
-              <h3>চাকরি পোস্ট</h3>
-              <p>স্থায়ী ড্রাইভার নিয়োগ দিন</p>
-            </Link>
-
-            <Link className="dashTile" to="/post/duties">
-              <ClipboardList />
-              <h3>বদলি ডিউটি পোস্ট</h3>
-              <p>অস্থায়ী ড্রাইভারের প্রয়োজন জানান</p>
-            </Link>
-
-            <Link className="dashTile" to="/post/bookings">
-              <CarFront />
-              <h3>ড্রাইভার বুকিং পোস্ট</h3>
-              <p>ড্রাইভার বুকিংয়ের অনুরোধ দিন</p>
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link className="dashTile" to="/jobs">
-              <BriefcaseBusiness />
-              <h3>চাকরি খুঁজুন</h3>
-              <p>স্থায়ী চাকরির বিজ্ঞপ্তি দেখুন</p>
-            </Link>
-
-            <Link className="dashTile" to="/duties">
-              <ClipboardList />
-              <h3>বদলি ডিউটি খুঁজুন</h3>
-              <p>অস্থায়ী কাজের বিজ্ঞপ্তি দেখুন</p>
-            </Link>
-          </>
-        )}
-      </div>
-    </main>
-  );
-}
-
-function Profile({ user }) {
-  const [form, setForm] = useState({
-    full_name: "",
-    phone: "",
-    address: "",
-    bio: ""
-  });
-
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadProfile() {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name, phone, address, bio")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (!active) return;
-
-      if (error) {
-        setMsg(error.message);
-      } else if (data) {
-        setForm({
-          full_name: data.full_name || "",
-          phone: data.phone || "",
-          address: data.address || "",
-          bio: data.bio || ""
-        });
-      }
-
-      setLoading(false);
-    }
-
-    loadProfile();
-
-    return () => {
-      active = false;
-    };
-  }, [user.id]);
-
-  function change(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
-
-  async function save(e) {
-    e.preventDefault();
-    setBusy(true);
-    setMsg("");
-
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update(form)
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      setMsg("আপনার প্রোফাইল সংরক্ষণ হয়েছে।");
-    } catch (err) {
-      setMsg("তথ্য সংরক্ষণ হয়নি: " + err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (loading) {
-    return <main className="page"><p>প্রোফাইল লোড হচ্ছে...</p></main>;
-  }
-
-  return (
-    <main className="page">
-      <div className="pageTitle">
-        <div className="eyebrow dark">ব্যক্তিগত তথ্য</div>
-        <h1>আমার প্রোফাইল</h1>
-        <p>আপনার যোগাযোগ ও পরিচিতির তথ্য পূরণ করুন।</p>
-      </div>
-
-      <form className="authCard" onSubmit={save}>
-        <label>
-          সম্পূর্ণ নাম
-          <input
-            name="full_name"
-            value={form.full_name}
-            onChange={change}
-            required
-            placeholder="আপনার নাম"
-          />
-        </label>
-
-        <label>
-          মোবাইল নম্বর
-          <input
-            name="phone"
-            value={form.phone}
-            onChange={change}
-            required
-            placeholder="01XXXXXXXXX"
-          />
-        </label>
-
-        <label>
-          ঠিকানা
-          <textarea
-            name="address"
-            value={form.address}
-            onChange={change}
-            rows={3}
-            placeholder="আপনার বর্তমান ঠিকানা"
-          />
-        </label>
-
-        <label>
-          নিজের সম্পর্কে / অভিজ্ঞতা
-          <textarea
-            name="bio"
-            value={form.bio}
-            onChange={change}
-            rows={5}
-            placeholder="আপনার কাজের অভিজ্ঞতা ও দক্ষতা লিখুন"
-          />
-        </label>
-
-        <button className="btn primary full" disabled={busy}>
-          {busy ? "সংরক্ষণ হচ্ছে..." : "প্রোফাইল সংরক্ষণ করুন"}
-        </button>
-
-        {msg && <p className="formMsg">{msg}</p>}
-      </form>
-    </main>
-  );
-}
-
-function Drivers() {
-  return (
-    <main className="page">
-      <div className="pageTitle">
-        <div className="eyebrow dark">ড্রাইভার ডিরেক্টরি</div>
-        <h1>ড্রাইভার খুঁজুন</h1>
-        <p>ড্রাইভারদের প্রোফাইল খোঁজার ব্যবস্থা পরবর্তী ধাপে যুক্ত হবে।</p>
-      </div>
-
-      <div className="empty">
-        <UserRound size={34} />
-        <h3>ড্রাইভার তালিকা প্রস্তুত হচ্ছে</h3>
-        <p>ড্রাইভারদের প্রোফাইল প্রকাশের ব্যবস্থা এখনো তৈরি হয়নি।</p>
-      </div>
-    </main>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="footer">
-      <div>
-        <b>Chattogram Driver Bazar</b>
-        <p>চালক ও গাড়ির মালিকের জন্য একটি অনলাইন প্ল্যাটফর্ম।</p>
-      </div>
-      <small>© {new Date().getFullYear()} Chattogram Driver Bazar</small>
-    </footer>
-  );
-}
-
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    async function checkSession() {
-      const { data } = await supabase.auth.getSession();
-
-      if (active) {
-        setUser(data.session?.user || null);
-        setChecking(false);
-      }
-    }
-
-    checkSession();
-
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+    const {data,error}=await supabase.from(table).select("*").eq("status","open").order("created_at",{ascending:false});
+    if(error)setMsg(error.message); else setItems(data||[]);
+    setBusy(false);
+  })();},[table]);
+  const apply=async item=>{
+    if(!user){setMsg("আবেদন করতে আগে লগইন করুন।");return;}
+    const {error}=await supabase.from("applications").insert({
+      listing_type:table,listing_id:item.id,driver_id:user.id,message:""
     });
-
-    return () => {
-      active = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    setUser(null);
-  }
-
-  if (checking) {
-    return <main className="page"><p>লোড হচ্ছে...</p></main>;
-  }
-
-  return (
-    <>
-      <Header user={user} onLogout={logout} />
-
-      <Routes>
-        <Route path="/" element={<Home />} />
-
-        <Route path="/jobs" element={<Listing kind="jobs" />} />
-        <Route path="/duties" element={<Listing kind="duties" />} />
-        <Route path="/bookings" element={<Listing kind="bookings" />} />
-
-        <Route path="/drivers" element={<Drivers />} />
-
-        <Route
-          path="/login"
-          element={
-            user
-              ? <Dashboard user={user} />
-              : <Auth mode="login" onAuth={setUser} />
-          }
-        />
-
-        <Route
-          path="/register"
-          element={
-            user
-              ? <Dashboard user={user} />
-              : <Auth mode="register" onAuth={setUser} />
-          }
-        />
-
-        <Route
-          path="/dashboard"
-          element={
-            user
-              ? <Dashboard user={user} />
-              : <Auth mode="login" onAuth={setUser} />
-          }
-        />
-
-        <Route
-          path="/profile"
-          element={
-            user
-              ? <Profile user={user} />
-              : <Auth mode="login" onAuth={setUser} />
-          }
-        />
-
-        <Route
-          path="/post/jobs"
-          element={
-            user && getRole(user) === "owner"
-              ? <OwnerPost user={user} kind="jobs" />
-              : <Auth mode="login" onAuth={setUser} />
-          }
-        />
-
-        <Route
-          path="/post/duties"
-          element={
-            user && getRole(user) === "owner"
-              ? <OwnerPost user={user} kind="duties" />
-              : <Auth mode="login" onAuth={setUser} />
-          }
-        />
-
-        <Route
-          path="/post/bookings"
-          element={
-            user && getRole(user) === "owner"
-              ? <OwnerPost user={user} kind="bookings" />
-              : <Auth mode="login" onAuth={setUser} />
-          }
-        />
-
-        <Route path="*" element={<Home />} />
-      </Routes>
-
-      <Footer />
-    </>
-  );
+    setMsg(error?error.message:"আবেদন পাঠানো হয়েছে।");
+  };
+  return <main style={mainStyle}><h1>{kind==="jobs"?"স্থায়ী চাকরি":"দৈনিক / বিকল্প ডিউটি"}</h1><Notice text={msg} error={!!msg&&msg.includes("Error")}/>
+    {busy?"লোড হচ্ছে...":items.length===0?"এখনো কোনো পোস্ট নেই।":<div style={cardsGrid}>{items.map(x=><article key={x.id} style={cardStyle}>
+      <h3>{x.title||`${x.vehicle_type||"গাড়ি"} ডিউটি`}</h3>
+      <p><MapPin size={15}/> {x.location||x.start_location||"ঠিকানা উল্লেখ নেই"}</p>
+      {x.destination&&<p>গন্তব্য: {x.destination}</p>}
+      <p>বেতন: <b>{money(x.salary??x.pay)}</b></p>
+      {x.duty_date&&<p>তারিখ: {x.duty_date}</p>}
+      {x.description||x.details ? <p>{x.description||x.details}</p>:null}
+      <Btn onClick={()=>apply(x)} disabled={!user}>আবেদন করুন</Btn>
+    </article>)}</div>}
+  </main>;
 }
+
+function DriverProfile({user,profile,refresh}) {
+  const [form,setForm]=useState({full_name:"",phone:"",address:"",bio:"",age:"",experience_years:"",license_number:"",license_type:"",skills:"",previous_experience:"",preferred_work_types:["permanent","substitute"],availability_status:"available"});
+  const [photo,setPhoto]=useState(null),[cv,setCv]=useState(null),[lic,setLic]=useState(null);
+  const [msg,setMsg]=useState(""),[error,setError]=useState(false),[saving,setSaving]=useState(false);
+  useEffect(()=>{if(profile)setForm(f=>({...f,...profile}));},[profile]);
+  const change=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const save=async e=>{
+    e.preventDefault();setSaving(true);setMsg("");setError(false);
+    try{
+      let photo_path=profile?.photo_path||null;
+      let cv_path=null,license_path=null;
+      if(photo) photo_path=await uploadFile("driver-photos",user.id,photo,"profile");
+      if(cv) cv_path=await uploadFile("driver-private",user.id,cv,"cv");
+      if(lic) license_path=await uploadFile("driver-private",user.id,lic,"license");
+      const {error:pe}=await supabase.from("profiles").upsert({
+        id:user.id,role:"driver",full_name:form.full_name,phone:form.phone,
+        address:form.address,bio:form.bio,photo_path
+      },{onConflict:"id"});
+      if(pe)throw pe;
+      const details={
+        driver_id:user.id,age:form.age?Number(form.age):null,
+        experience_years:form.experience_years?Number(form.experience_years):0,
+        license_number:form.license_number,license_type:form.license_type,
+        skills:form.skills,previous_experience:form.previous_experience,
+        preferred_work_types:form.preferred_work_types,
+        availability_status:form.availability_status,
+        ...(cv_path?{cv_path}:{}),...(license_path?{license_path}:{})
+      };
+      const {error:de}=await supabase.from("driver_details").upsert(details,{onConflict:"driver_id"});
+      if(de)throw de;
+      setMsg("প্রোফাইল সংরক্ষণ হয়েছে।"); await refresh();
+    }catch(e){setMsg(e.message||"সংরক্ষণ হয়নি");setError(true);}
+    setSaving(false);
+  };
+  const toggleWork=v=>change("preferred_work_types",form.preferred_work_types.includes(v)?form.preferred_work_types.filter(x=>x!==v):[...form.preferred_work_types,v]);
+  return <form onSubmit={save}>
+    <Panel title="ড্রাইভারের প্রোফাইল">
+      <div style={formGrid}>
+        <Field label="পূর্ণ নাম" value={form.full_name||""} onChange={e=>change("full_name",e.target.value)} required/>
+        <Field label="মোবাইল নম্বর" value={form.phone||""} onChange={e=>change("phone",e.target.value)} required/>
+        <Field label="বয়স" type="number" value={form.age||""} onChange={e=>change("age",e.target.value)}/>
+        <Field label="অভিজ্ঞতা (বছর)" type="number" value={form.experience_years||""} onChange={e=>change("experience_years",e.target.value)}/>
+        <Field label="ঠিকানা" value={form.address||""} onChange={e=>change("address",e.target.value)}/>
+        <SelectField label="কাজের অবস্থা" value={form.availability_status||"available"} onChange={e=>change("availability_status",e.target.value)} options={[{value:"available",label:"কাজ খুঁজছি"},{value:"busy",label:"এখন ব্যস্ত"},{value:"unavailable",label:"এখন কাজ চাই না"}]}/>
+        <Field label="ড্রাইভিং লাইসেন্স নম্বর" value={form.license_number||""} onChange={e=>change("license_number",e.target.value)}/>
+        <Field label="লাইসেন্সের ধরন" value={form.license_type||""} onChange={e=>change("license_type",e.target.value)}/>
+        <Field label="দক্ষতা" value={form.skills||""} onChange={e=>change("skills",e.target.value)} placeholder="যেমন: প্রাইভেট কার, মাইক্রোবাস"/>
+        <Field label="আগের কাজের অভিজ্ঞতা" value={form.previous_experience||""} onChange={e=>change("previous_experience",e.target.value)}/>
+      </div>
+      <div style={{marginTop:12}}><Field label="নিজের পরিচিতি" as="textarea" value={form.bio||""} onChange={e=>change("bio",e.target.value)}/></div>
+      <p style={{fontWeight:700}}>কোন ধরনের কাজ চান?</p>
+      <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>{[["permanent","স্থায়ী"],["substitute","বিকল্প"],["part-time","পার্ট-টাইম"],["daily","দৈনিক"],["weekly","সাপ্তাহিক"],["monthly","মাসিক"]].map(([v,l])=><label key={v}><input type="checkbox" checked={(form.preferred_work_types||[]).includes(v)} onChange={()=>toggleWork(v)}/> {l}</label>)}</div>
+      <div style={formGrid}>
+        <Field label="প্রোফাইল ছবি" type="file" accept="image/*" onChange={e=>setPhoto(e.target.files[0])}/>
+        <Field label="CV (PDF)" type="file" accept=".pdf,.doc,.docx" onChange={e=>setCv(e.target.files[0])}/>
+        <Field label="লাইসেন্সের ছবি" type="file" accept="image/*,.pdf" onChange={e=>setLic(e.target.files[0])}/>
+      </div>
+      <Notice text={msg} error={error}/><Btn type="submit" disabled={saving}>{saving?"সংরক্ষণ হচ্ছে...":"প্রোফাইল সংরক্ষণ করুন"}</Btn>
+    </Panel>
+  </form>;
+}
+
+function DriverDashboard({user,profile,refresh}) {
+  const [apps,setApps]=useState([]),[offers,setOffers]=useState([]),[notices,setNotices]=useState([]),[msg,setMsg]=useState("");
+  const load=async()=>{
+    const [a,o,n]=await Promise.all([
+      supabase.from("applications").select("*").eq("driver_id",user.id).order("created_at",{ascending:false}),
+      supabase.from("owner_offers").select("*").eq("driver_id",user.id).order("created_at",{ascending:false}),
+      supabase.from("notifications").select("*").eq("user_id",user.id).order("created_at",{ascending:false})
+    ]);
+    setApps(a.data||[]);setOffers(o.data||[]);setNotices(n.data||[]);
+  };
+  useEffect(()=>{load();},[user.id]);
+  const answerOffer=async(id,status)=>{
+    const {error}=await supabase.from("owner_offers").update({status}).eq("id",id);
+    setMsg(error?error.message:"আপনার উত্তর পাঠানো হয়েছে।");load();
+  };
+  const cancelApp=async id=>{
+    const reason=window.prompt("আবেদন বাতিলের কারণ লিখুন:");
+    if(!reason)return;
+    const {error}=await supabase.from("applications").update({status:"cancelled",cancellation_reason:reason}).eq("id",id);
+    setMsg(error?error.message:"আবেদন বাতিল হয়েছে।");load();
+  };
+  return <div>
+    <DriverProfile user={user} profile={profile} refresh={refresh}/>
+    <Panel title="মালিকের কাজের অনুরোধ">
+      {offers.length?offers.map(o=><div key={o.id} style={listRow}>
+        <div><b>{o.title}</b><p>{o.vehicle_type} · {o.work_type} · {o.location}</p><p>প্রস্তাবিত বেতন: {money(o.proposed_pay)} · অবস্থা: {o.status}</p><small>{o.details}</small></div>
+        {o.status==="pending"&&<div style={{display:"flex",gap:7}}><Btn onClick={()=>answerOffer(o.id,"accepted")}><CheckCircle size={15}/> গ্রহণ</Btn><Btn tone="red" onClick={()=>answerOffer(o.id,"rejected")}><XCircle size={15}/> প্রত্যাখ্যান</Btn></div>}
+      </div>):"এখনো কোনো অনুরোধ আসেনি।"}
+    </Panel>
+    <Panel title="আমার আবেদন">
+      {apps.length?apps.map(a=><div key={a.id} style={listRow}><div><b>{a.listing_type==="jobs"?"স্থায়ী চাকরি":"দৈনিক ডিউটি"}</b><p>অবস্থা: {a.status}</p>{a.cancellation_reason&&<small>বাতিলের কারণ: {a.cancellation_reason}</small>}</div>{a.status==="pending"&&<Btn tone="red" onClick={()=>cancelApp(a.id)}>আবেদন বাতিল</Btn>}</div>):"এখনো কোনো আবেদন করেননি।"}
+    </Panel>
+    <Panel title="নোটিফিকেশন">{notices.length?notices.map(n=><div key={n.id} style={listRow}><div><b>{n.title}</b><p>{n.message}</p></div></div>):"নতুন নোটিফিকেশন নেই।"}</Panel>
+    <Notice text={msg}/>
+  </div>;
+}
+
+function OwnerDashboard({user,profile,refresh}) {
+  const [jobs,setJobs]=useState([]),[duties,setDuties]=useState([]),[drivers,setDrivers]=useState([]),[apps,setApps]=useState([]),[offers,setOffers]=useState([]),[notices,setNotices]=useState([]);
+  const [msg,setMsg]=useState(""),[tab,setTab]=useState("posts"),[editing,setEditing]=useState(null);
+  const [job,setJob]=useState({title:"",vehicle_type:"প্রাইভেট কার",location:"",salary:"",salary_negotiable:false,duty_start:"",duty_end:"",weekly_day_off:"",responsibilities:"",description:""});
+  const [duty,setDuty]=useState({vehicle_type:"প্রাইভেট কার",location:"",start_location:"",destination:"",duty_date:"",start_time:"",end_time:"",duration_hours:"",pay:"",pay_negotiable:false,details:""});
+  const [offer,setOffer]=useState({driver_id:"",title:"",vehicle_type:"প্রাইভেট কার",work_type:"daily",location:"",proposed_pay:"",details:"",start_at:""});
+  const load=async()=>{
+    const [j,d,p,o,n]=await Promise.all([
+      supabase.from("jobs").select("*").eq("owner_id",user.id).order("created_at",{ascending:false}),
+      supabase.from("substitute_duties").select("*").eq("owner_id",user.id).order("created_at",{ascending:false}),
+      supabase.rpc("get_public_driver_profiles"),
+      supabase.from("owner_offers").select("*").eq("owner_id",user.id).order("created_at",{ascending:false}),
+      supabase.from("notifications").select("*").eq("user_id",user.id).order("created_at",{ascending:false})
+    ]);
+    setJobs(j.data||[]);setDuties(d.data||[]);setDrivers(p.data||[]);setOffers(o.data||[]);setNotices(n.data||[]);
+    const ids=[...(j.data||[]).map(x=>({id:x.id,type:"jobs"})),...(d.data||[]).map(x=>({id:x.id,type:"substitute_duties"}))];
+    if(ids.length){
+      const clauses=ids.map(x=>`and(listing_type.eq.${x.type},listing_id.eq.${x.id})`).join(",");
+      const {data:ap}=await supabase.from("applications").select("*").or(clauses).order("created_at",{ascending:false});
+      setApps(ap||[]);
+    }else setApps([]);
+  };
+  useEffect(()=>{load();},[user.id]);
+  const savePost=async(type,e)=>{
+    e.preventDefault();setMsg("");
+    const table=type==="jobs"?"jobs":"substitute_duties";
+    const values=type==="jobs"?{...job,owner_id:user.id,salary:job.salary?Number(job.salary):null,status:"open"}:{
+      ...duty,owner_id:user.id,pay:duty.pay?Number(duty.pay):null,duration_hours:duty.duration_hours?Number(duty.duration_hours):null,status:"open"
+    };
+    const result=editing
+      ? await supabase.from(table).update(values).eq("id",editing.id)
+      : await supabase.from(table).insert(values);
+    if(result.error)setMsg(result.error.message);
+    else {setMsg("পোস্ট সংরক্ষণ হয়েছে।");setEditing(null);setJob({title:"",vehicle_type:"প্রাইভেট কার",location:"",salary:"",salary_negotiable:false,duty_start:"",duty_end:"",weekly_day_off:"",responsibilities:"",description:""});setDuty({vehicle_type:"প্রাইভেট কার",location:"",start_location:"",destination:"",duty_date:"",start_time:"",end_time:"",duration_hours:"",pay:"",pay_negotiable:false,details:""});load();}
+  };
+  const deletePost=async(type,id)=>{
+    if(!window.confirm("এই পোস্টটি ডিলিট করবেন?"))return;
+    const {error}=await supabase.from(type).delete().eq("id",id);
+    setMsg(error?error.message:"পোস্ট ডিলিট হয়েছে।");load();
+  };
+  const sendOffer=async e=>{
+    e.preventDefault();
+    const {error}=await supabase.from("owner_offers").insert({...offer,owner_id:user.id,proposed_pay:offer.proposed_pay?Number(offer.proposed_pay):null,status:"pending"});
+    setMsg(error?error.message:"কাজের অনুরোধ পাঠানো হয়েছে।");
+    if(!error){setOffer({driver_id:"",title:"",vehicle_type:"প্রাইভেট কার",work_type:"daily",location:"",proposed_pay:"",details:"",start_at:""});load();}
+  };
+  const setAppStatus=async(id,status)=>{
+    const {error}=await supabase.from("applications").update({status}).eq("id",id);
+    setMsg(error?error.message:"আবেদনের অবস্থা পরিবর্তন হয়েছে।");load();
+  };
+  const [privateInfo,setPrivateInfo]=useState({});
+  const reveal=async driverId=>{
+    const {data,error}=await supabase.rpc("get_driver_private_contact",{p_driver_id:driverId});
+    if(error){setMsg(error.message);return;}
+    const info=data?.[0];
+    if(!info){setMsg("ব্যক্তিগত তথ্য দেখার অনুমতি নেই। আগে আবেদন বা কাজের অনুরোধ গ্রহণ করুন।");return;}
+    const files={};
+    for(const key of ["cv_path","license_path"]) if(info[key]){
+      const {data:signed}=await supabase.storage.from("driver-private").createSignedUrl(info[key],120);
+      files[key]=signed?.signedUrl;
+    }
+    setPrivateInfo(p=>({...p,[driverId]:{...info,...files}}));
+  };
+  const driverById=id=>drivers.find(d=>d.driver_id===id);
+  const startEdit=(type,item)=>{setEditing({type,id:item.id});if(type==="jobs")setJob({...job,...item});else setDuty({...duty,...item});setTab(type);};
+  return <div>
+    <Panel title="মালিকের ড্যাশবোর্ড" right={<span style={{color:C.muted}}>{profile?.full_name||"মালিক"}</span>}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[["posts","আমার পোস্ট"],["jobs","স্থায়ী চাকরি পোস্ট"],["substitute_duties","দৈনিক ডিউটি পোস্ট"],["drivers","ড্রাইভার খুঁজুন"],["applications","আবেদন"],["offers","অনুরোধ"],["notifications","নোটিফিকেশন"]].map(([v,l])=><button key={v} onClick={()=>setTab(v)} style={{padding:"9px 12px",borderRadius:8,border:`1px solid ${C.border}`,background:tab===v?C.green:"#fff",color:tab===v?"#fff":C.dark,fontWeight:700}}>{l}</button>)}
+      </div>
+    </Panel>
+    {tab==="posts"&&<Panel title="আমার প্রকাশিত পোস্ট">
+      <h3>স্থায়ী চাকরি</h3>{jobs.length?jobs.map(x=><div key={x.id} style={listRow}><div><b>{x.title}</b><p>{x.location} · {money(x.salary)}</p></div><Btn tone="light" onClick={()=>startEdit("jobs",x)}><Pencil size={15}/> Edit</Btn><Btn tone="red" onClick={()=>deletePost("jobs",x.id)}><Trash2 size={15}/> Delete</Btn></div>):"কোনো পোস্ট নেই।"}
+      <h3>দৈনিক ডিউটি</h3>{duties.length?duties.map(x=><div key={x.id} style={listRow}><div><b>{x.vehicle_type}</b><p>{x.location} · {x.duty_date} · {money(x.pay)}</p></div><Btn tone="light" onClick={()=>startEdit("substitute_duties",x)}><Pencil size={15}/> Edit</Btn><Btn tone="red" onClick={()=>deletePost("substitute_duties",x.id)}><Trash2 size={15}/> Delete</Btn></div>):"কোনো পোস্ট নেই।"}
+    </Panel>}
+    {tab==="jobs"&&<Panel title={editing?.type==="jobs"?"চাকরির পোস্ট সম্পাদনা":"স্থায়ী চাকরির পোস্ট"}>
+      <form onSubmit={e=>savePost("jobs",e)} style={formGrid}>
+        <Field label="পদের নাম" value={job.title} onChange={e=>setJob({...job,title:e.target.value})} required/>
+        <Field label="গাড়ির ধরন" value={job.vehicle_type} onChange={e=>setJob({...job,vehicle_type:e.target.value})}/>
+        <Field label="কর্মস্থল" value={job.location} onChange={e=>setJob({...job,location:e.target.value})} required/>
+        <Field label="মাসিক বেতন" type="number" value={job.salary||""} onChange={e=>setJob({...job,salary:e.target.value})}/>
+        <Field label="ডিউটি শুরু" type="time" value={job.duty_start||""} onChange={e=>setJob({...job,duty_start:e.target.value})}/>
+        <Field label="ডিউটি শেষ" type="time" value={job.duty_end||""} onChange={e=>setJob({...job,duty_end:e.target.value})}/>
+        <Field label="সাপ্তাহিক ছুটি" value={job.weekly_day_off||""} onChange={e=>setJob({...job,weekly_day_off:e.target.value})}/>
+        <label><input type="checkbox" checked={!!job.salary_negotiable} onChange={e=>setJob({...job,salary_negotiable:e.target.checked})}/> বেতন আলোচনা সাপেক্ষ</label>
+        <Field label="দায়িত্ব" as="textarea" value={job.responsibilities||""} onChange={e=>setJob({...job,responsibilities:e.target.value})}/>
+        <Field label="অন্যান্য বিবরণ" as="textarea" value={job.description||""} onChange={e=>setJob({...job,description:e.target.value})}/>
+        <div style={{gridColumn:"1/-1",display:"flex",gap:8}}><Btn type="submit">{editing?"পরিবর্তন সংরক্ষণ":"চাকরি পোস্ট করুন"}</Btn>{editing&&<Btn tone="light" onClick={()=>setEditing(null)}>বাতিল</Btn>}</div>
+      </form>
+    </Panel>}
+    {tab==="substitute_duties"&&<Panel title={editing?.type==="substitute_duties"?"ডিউটি পোস্ট সম্পাদনা":"দৈনিক / বিকল্প ডিউটি পোস্ট"}>
+      <form onSubmit={e=>savePost("substitute_duties",e)} style={formGrid}>
+        <Field label="গাড়ির ধরন" value={duty.vehicle_type} onChange={e=>setDuty({...duty,vehicle_type:e.target.value})}/>
+        <Field label="এলাকা" value={duty.location} onChange={e=>setDuty({...duty,location:e.target.value})} required/>
+        <Field label="শুরুর স্থান" value={duty.start_location||""} onChange={e=>setDuty({...duty,start_location:e.target.value})}/>
+        <Field label="গন্তব্য" value={duty.destination||""} onChange={e=>setDuty({...duty,destination:e.target.value})}/>
+        <Field label="ডিউটির তারিখ" type="date" value={duty.duty_date||""} onChange={e=>setDuty({...duty,duty_date:e.target.value})}/>
+        <Field label="শুরু" type="time" value={duty.start_time||""} onChange={e=>setDuty({...duty,start_time:e.target.value})}/>
+        <Field label="শেষ" type="time" value={duty.end_time||""} onChange={e=>setDuty({...duty,end_time:e.target.value})}/>
+        <Field label="ঘণ্টা" type="number" value={duty.duration_hours||""} onChange={e=>setDuty({...duty,duration_hours:e.target.value})}/>
+        <Field label="মোট পারিশ্রমিক" type="number" value={duty.pay||""} onChange={e=>setDuty({...duty,pay:e.target.value})}/>
+        <label><input type="checkbox" checked={!!duty.pay_negotiable} onChange={e=>setDuty({...duty,pay_negotiable:e.target.checked})}/> পারিশ্রমিক আলোচনা সাপেক্ষ</label>
+        <Field label="বিস্তারিত" as="textarea" value={duty.details||""} onChange={e=>setDuty({...duty,details:e.target.value})}/>
+        <div style={{gridColumn:"1/-1"}}><Btn type="submit">{editing?"পরিবর্তন সংরক্ষণ":"ডিউটি পোস্ট করুন"}</Btn></div>
+      </form>
+    </Panel>}
+    {tab==="drivers"&&<Panel title="ড্রাইভার খুঁজুন">
+      <p style={{color:C.muted}}>এখানে শুধু ড্রাইভারের ছবি, নাম, অভিজ্ঞতা, দক্ষতা ও ঠিকানা দেখানো হয়।</p>
+      <div style={cardsGrid}>{drivers.map(d=><article key={d.driver_id} style={cardStyle}>
+        {d.photo_path&&<img src={publicPhoto(d.photo_path)} alt="ড্রাইভার" style={{width:82,height:82,objectFit:"cover",borderRadius:"50%"}}/>}
+        <h3>{d.full_name||"নাম দেওয়া হয়নি"}</h3><p>{d.experience_years||0} বছর অভিজ্ঞতা</p><p>{d.skills||"দক্ষতা উল্লেখ নেই"}</p><p><MapPin size={14}/> {d.address||"ঠিকানা নেই"}</p>
+        <Btn onClick={()=>{setOffer({...offer,driver_id:d.driver_id});setTab("sendoffer");}}>কাজের অনুরোধ পাঠান</Btn>
+      </article>)}</div>
+    </Panel>}
+    {tab==="sendoffer"&&<Panel title="ড্রাইভারকে কাজের অনুরোধ">
+      <form onSubmit={sendOffer} style={formGrid}>
+        <SelectField label="ড্রাইভার" value={offer.driver_id} onChange={e=>setOffer({...offer,driver_id:e.target.value})} options={[{value:"",label:"ড্রাইভার নির্বাচন করুন"},...drivers.map(d=>({value:d.driver_id,label:d.full_name||d.driver_id}))]}/>
+        <Field label="কাজের শিরোনাম" value={offer.title} onChange={e=>setOffer({...offer,title:e.target.value})} required/>
+        <Field label="গাড়ির ধরন" value={offer.vehicle_type} onChange={e=>setOffer({...offer,vehicle_type:e.target.value})}/>
+        <SelectField label="কাজের ধরন" value={offer.work_type} onChange={e=>setOffer({...offer,work_type:e.target.value})} options={[{value:"permanent",label:"স্থায়ী"},{value:"substitute",label:"বিকল্প"},{value:"part-time",label:"পার্ট-টাইম"},{value:"daily",label:"দৈনিক"},{value:"weekly",label:"সাপ্তাহিক"},{value:"monthly",label:"মাসিক"}]}/>
+        <Field label="কর্মস্থল" value={offer.location} onChange={e=>setOffer({...offer,location:e.target.value})}/>
+        <Field label="প্রস্তাবিত বেতন" type="number" value={offer.proposed_pay||""} onChange={e=>setOffer({...offer,proposed_pay:e.target.value})}/>
+        <Field label="কাজ শুরুর সময়" type="datetime-local" value={offer.start_at||""} onChange={e=>setOffer({...offer,start_at:e.target.value})}/>
+        <Field label="বিস্তারিত" as="textarea" value={offer.details} onChange={e=>setOffer({...offer,details:e.target.value})}/>
+        <div style={{gridColumn:"1/-1"}}><Btn type="submit" disabled={!offer.driver_id}>অনুরোধ পাঠান</Btn></div>
+      </form>
+    </Panel>}
+    {tab==="applications"&&<Panel title="ড্রাইভারের আবেদন">
+      {apps.length?apps.map(a=>{const d=driverById(a.driver_id);return <div key={a.id} style={listRow}>
+        <div><b>{d?.full_name||"ড্রাইভার"}</b><p>{a.listing_type} · আবেদন: {a.status}</p><p>{d?.experience_years||0} বছর · {d?.skills||""} · {d?.address||""}</p>
+          {a.status==="accepted"&&<><Btn tone="light" onClick={()=>reveal(a.driver_id)}>ব্যক্তিগত তথ্য দেখুন</Btn>{privateInfo[a.driver_id]&&<div style={{marginTop:8}}><p>ফোন: {privateInfo[a.driver_id].phone||"নেই"}</p>{privateInfo[a.driver_id].cv_path&&<a href={privateInfo[a.driver_id].cv_path} target="_blank" rel="noreferrer">CV খুলুন</a>} {privateInfo[a.driver_id].license_path&&<a href={privateInfo[a.driver_id].license_path} target="_blank" rel="noreferrer">লাইসেন্স খুলুন</a>}</div>}</>}
+        </div>
+        {a.status==="pending"&&<div style={{display:"flex",gap:7}}><Btn onClick={()=>setAppStatus(a.id,"accepted")}>গ্রহণ</Btn><Btn tone="red" onClick={()=>setAppStatus(a.id,"rejected")}>বাতিল</Btn></div>}
+      </div>; }):"এখনো কোনো আবেদন আসেনি।"}
+    </Panel>}
+    {tab==="offers"&&<Panel title="সরাসরি পাঠানো অনুরোধ">
+      {offers.length?offers.map(o=><div key={o.id} style={listRow}><div><b>{o.title}</b><p>অবস্থা: {o.status} · বেতন: {money(o.proposed_pay)}</p>
+        {o.status==="accepted"&&<><Btn tone="light" onClick={()=>reveal(o.driver_id)}>ড্রাইভারের ব্যক্তিগত তথ্য দেখুন</Btn>{privateInfo[o.driver_id]&&<p>ফোন: {privateInfo[o.driver_id].phone||"নেই"}</p>}</>}
+      </div></div>):"কোনো অনুরোধ পাঠানো হয়নি।"}
+    </Panel>}
+    {tab==="notifications"&&<Panel title="নোটিফিকেশন">{notices.length?notices.map(n=><div key={n.id} style={listRow}><div><b>{n.title}</b><p>{n.message}</p></div></div>):"নতুন নোটিফিকেশন নেই।"}</Panel>}
+    <Notice text={msg} error={!!msg&&/error|permission|denied|violates/i.test(msg)}/>
+  </div>;
+}
+
+function Dashboard({user,profile,refresh}) {
+  const role=profile?.role||user.user_metadata?.role||"driver";
+  return <main style={mainStyle}><h1>আমার ড্যাশবোর্ড</h1>
+    {role==="owner"?<OwnerDashboard user={user} profile={profile} refresh={refresh}/>:<DriverDashboard user={user} profile={profile} refresh={refresh}/>}
+  </main>;
+}
+function App() {
+  const [user,setUser]=useState(null),[profile,setProfile]=useState(null),[loading,setLoading]=useState(true);
+  const refresh=async()=>{
+    const {data:{user:u}}=await supabase.auth.getUser();setUser(u||null);
+    if(u){
+      const {data:p}=await supabase.from("profiles").select("*").eq("id",u.id).maybeSingle();
+      setProfile(p||{id:u.id,role:u.user_metadata?.role,full_name:u.user_metadata?.full_name,phone:u.user_metadata?.phone});
+    }else setProfile(null);
+  };
+  useEffect(()=>{
+    let mounted=true;
+    supabase.auth.getSession().then(async({data})=>{
+      if(!mounted)return;
+      const u=data.session?.user||null;setUser(u);
+      if(u){
+        const {data:p}=await supabase.from("profiles").select("*").eq("id",u.id).maybeSingle();
+        if(mounted)setProfile(p||{id:u.id,role:u.user_metadata?.role,full_name:u.user_metadata?.full_name,phone:u.user_metadata?.phone});
+      }
+      if(mounted)setLoading(false);
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange(()=>{refresh();});
+    return()=>{mounted=false;subscription.unsubscribe();};
+  },[]);
+  const signOut=async()=>{await supabase.auth.signOut();setUser(null);setProfile(null);};
+  if(loading)return <div style={{padding:30,textAlign:"center"}}>লোড হচ্ছে...</div>;
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.dark,fontFamily:"'Hind Siliguri',Arial,sans-serif"}}>
+    <Header user={user} role={profile?.role} signOut={signOut}/>
+    <Routes>
+      <Route path="/" element={<Home/>}/>
+      <Route path="/jobs" element={<ListingPage kind="jobs" user={user}/>}/>
+      <Route path="/duties" element={<ListingPage kind="duties" user={user}/>}/>
+      <Route path="/login" element={<Auth mode="login" refresh={refresh}/>}/>
+      <Route path="/register" element={<Auth mode="register" refresh={refresh}/>}/>
+      <Route path="/dashboard" element={user?<Dashboard user={user} profile={profile} refresh={refresh}/>:<Auth mode="login" refresh={refresh}/>}/>
+      <Route path="*" element={<Home/>}/>
+    </Routes>
+    <footer style={{textAlign:"center",padding:25,color:C.muted}}>© Chattogram Driver Bazar</footer>
+  </div>;
+}
+const mainStyle={maxWidth:1120,margin:"auto",padding:"24px 16px"};
+const cardsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:14};
+const cardStyle={background:"#fff",border:`1px solid ${C.border}`,borderRadius:13,padding:16,display:"grid",gap:8,alignContent:"start"};
+const formGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:12};
+const listRow={display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,padding:"12px 0",borderBottom:`1px solid ${C.border}`,flexWrap:"wrap"};
+
+export default App;

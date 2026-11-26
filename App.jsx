@@ -8,8 +8,7 @@ import {
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
-const C = {
-  const C = {
+cconst C = {
   navy: "#183B5B",
   navy2: "#285A82",
   pale: "#EAF4FC",
@@ -49,14 +48,27 @@ function SelectField({label, options, ...props}) {
 }
 function Panel({title, children, right}) {
   return <section style={{
-  background:"linear-gradient(135deg,#F4F9FF 0%,#E5F1FC 55%,#DCEBFA 100%)",
-  color:C.navy,
-  padding:"35px 25px",
-  border:"1px solid #DCE8F4",
-  borderRadius:22,
-  overflow:"hidden",
-  boxShadow:"0 8px 28px rgba(40,90,130,0.08)"
-}}>
+    background:"#FFFFFF",
+    border:`1px solid ${C.border}`,
+    borderRadius:18,
+    padding:20,
+    marginBottom:16,
+    boxShadow:"0 5px 20px rgba(40,90,130,0.06)"
+  }}>
+    <div style={{
+      display:"flex",
+      justifyContent:"space-between",
+      alignItems:"center",
+      gap:10,
+      flexWrap:"wrap",
+      marginBottom:15
+    }}>
+      <h2 style={{margin:0,color:C.navy,fontSize:21}}>{title}</h2>
+      {right}
+    </div>
+    {children}
+  </section>;
+}
 function Notice({text, error}) {
   if (!text) return null;
   return <div style={{padding:11,borderRadius:9,margin:"10px 0",background:error?"#fff0ef":C.pale,color:error?C.red:C.navy}}>{text}</div>;

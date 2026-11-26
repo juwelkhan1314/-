@@ -74,7 +74,7 @@ function Header({user, role, signOut}) {
           <span><MapPin size={14} style={{verticalAlign:"middle",marginRight:5}}/>চট্টগ্রাম,শহর</span>
           <span><Phone size={14} style={{verticalAlign:"middle",marginRight:5}}/>+88 01401314095</span>
         </div>
-        <div style={{display:"flex",gap:12,alignItems:"center"}}><span><Clock3 size={14} style={{verticalAlign:"middle",marginRight:5}}/>ওয়েবসাইট সমস্যা হলে যোগাযোগ সকাল ৮টা - রাত ১০টা</span><span style={{fontSize:17}}>🟢</span></div>
+        <div style={{display:"flex",gap:12,alignItems:"center"}}><span><Clock3 size={14} style={{verticalAlign:"middle",marginRight:5}}/>ওয়েবসাইট সমস্যা হলে যোগাযোগ সকাল ৮টা - রাত ১০টা</span><span style={{fontSize:17}}></span></div>
       </div>
     </div>
     <div style={{maxWidth:1200,margin:"auto",padding:"12px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:15,flexWrap:"wrap"}}>

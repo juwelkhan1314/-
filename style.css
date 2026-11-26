@@ -22,15 +22,39 @@
   }
 }
 
-/* Desktop Full Page Height Fix */
+
+/* Desktop Full Page Layout */
 html, body, #root {
+  width: 100%;
   min-height: 100%;
+  margin: 0;
 }
 
 #root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-main {
-  min-height: 100vh;
+#root > .header,
+#root > header {
+  flex-shrink: 0;
+}
+
+#root > main {
+  flex: 1 0 auto;
+  min-height: 0;
+}
+
+#root > .footer,
+#root > footer {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* Mobile layout unchanged */
+@media (max-width: 800px) {
+  #root {
+    min-height: 100vh;
+  }
 }

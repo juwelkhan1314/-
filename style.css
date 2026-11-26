@@ -73,7 +73,8 @@ html, body, #root {
 }
 
 .app-main {
-  flex: 1;
+  flex: 1 0 auto;
   width: 100%;
-  min-height: calc(100vh - 70px);
+  min-height: 0;
+  background: #F3F8FE;
 }

@@ -481,22 +481,33 @@ function App() {
   },[]);
   const signOut=async()=>{await supabase.auth.signOut();setUser(null);setProfile(null);};
   if(loading)return <div style={{padding:30,textAlign:"center"}}>লোড হচ্ছে...</div>;
-  return <div style={{minHeight:"100vh",background:C.bg,color:C.navy,fontFamily:"'Hind Siliguri',Arial,sans-serif"}}>
+  return (
+  <div
+    className="app-shell"
+    style={{
+      minHeight: "100vh",
+      background: C.bg,
+      color: C.navy,
+      fontFamily: "'Hind Siliguri',Arial,sans-serif"
+    }}
+  >
     <Header user={user} role={profile?.role} signOut={signOut}/>
-    <Routes>
-      <Route path="/" element={<Home/>}/>
-      <Route path="/drivers" element={<DriverSearch/>}/>
-      <Route path="/jobs" element={<ListingPage kind="jobs" user={user}/>}/>
-      <Route path="/duties" element={<ListingPage kind="duties" user={user}/>}/>
-      <Route path="/guest-job" element={<GuestJobPost/>}/>
-      <Route path="/login" element={<Auth mode="login" refresh={refresh}/>}/>
-      <Route path="/register" element={<Auth mode="register" refresh={refresh}/>}/>
-      <Route path="/dashboard" element={user?<Dashboard user={user} profile={profile} refresh={refresh}/>:<Auth mode="login" refresh={refresh}/>}/>
-      <Route path="*" element={<Home/>}/>
-    </Routes>
 
-  </div>;
-}
+    <main className="app-main">
+      <Routes>
+        <Route path="/" element={<Home/>}/>
+        <Route path="/drivers" element={<DriverSearch/>}/>
+        <Route path="/jobs" element={<ListingPage kind="jobs" user={user}/>}/>
+        <Route path="/duties" element={<ListingPage kind="duties" user={user}/>}/>
+        <Route path="/guest-job" element={<GuestJobPost/>}/>
+        <Route path="/login" element={<Auth mode="login" refresh={refresh}/>}/>
+        <Route path="/register" element={<Auth mode="register" refresh={refresh}/>}/>
+        <Route path="/dashboard" element={user?<Dashboard user={user} profile={profile} refresh={refresh}/>:<Auth mode="login" refresh={refresh}/>}/>
+        <Route path="*" element={<Home/>}/>
+      </Routes>
+    </main>
+  </div>
+);
 const mainStyle={maxWidth:1120,margin:"auto",padding:"24px 16px"};
 const cardsGrid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:14};
 const cardStyle={background:"#fff",border:`1px solid ${C.border}`,borderRadius:13,padding:16,display:"grid",gap:8,alignContent:"start"};

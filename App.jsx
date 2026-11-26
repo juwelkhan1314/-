@@ -9,9 +9,9 @@ import {
 import { supabase, isSupabaseConfigured } from "./supabase";
 
 const C = {
-  navy: "#173B63", navy2: "#24527A", pale: "#EAF5FC",
-  border: "#DCE8F2", muted: "#647B91", red: "#B42318",
-  white: "#FFFFFF", bg: "#F7FBFE", green: "#176B52"
+  navy: "#082F61", navy2: "#0755A0", pale: "#E8F4FF",
+  border: "#D5E6F5", muted: "#647B91", red: "#B42318",
+  white: "#FFFFFF", bg: "#F3F8FE", green: "#087B4B"
 };
 
 function Btn({ children, onClick, type="button", disabled=false, tone="navy" }) {
@@ -67,24 +67,35 @@ async function uploadFile(bucket, userId, file, prefix) {
 
 function Header({user, role, signOut}) {
   const [open,setOpen] = useState(false);
-  return <header style={{background:"#fff",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:10}}>
-    <div style={{maxWidth:1120,margin:"auto",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-      <Link to="/" style={{display:"flex",alignItems:"center",gap:9,textDecoration:"none",color:C.navy,fontWeight:900,fontSize:18}}>
-        <span style={{background:C.navy,color:"#fff",borderRadius:10,padding:"8px 10px"}}>CDB</span>
-        <span>Chattogram Driver Bazar BD</span>
-      </Link>
-      <nav style={{display:"flex",gap:12,alignItems:"center",flexWrap:"wrap",width:"100%",padding:"8px 0"}}>
-        <NavLink to="/" style={navStyle}>হোম</NavLink>
-        <NavLink to="/drivers" style={navStyle}>অভিজ্ঞ ড্রাইভার খুঁজুন</NavLink>
-        <NavLink to="/jobs" style={navStyle}>ড্রাইভার চাকরি</NavLink>
-        <NavLink to="/duties" style={navStyle}>বদলি ডিউটি</NavLink>
-        {user ? <><NavLink to="/dashboard" style={navStyle}>ড্যাশবোর্ড</NavLink><button onClick={signOut} style={plainBtn}><LogOut size={16}/> লগআউট</button></>
-          : <><NavLink to="/login" style={navStyle}>লগইন</NavLink></>}
-      </nav>
-      <div style={{display:"flex",gap:7,flexWrap:"wrap",marginLeft:"auto"}}>
-        {!user && <><Link to="/register?role=driver" style={smallReg}>ড্রাইভার রেজিস্ট্রেশন</Link><Link to="/register?role=owner" style={smallReg}>মালিক রেজিস্ট্রেশন</Link></>}
+  return <header style={{background:"#fff",position:"relative",zIndex:10,boxShadow:"0 2px 10px #082f5510"}}>
+    <div style={{background:"#07366B",color:"#fff",fontSize:13}}>
+      <div style={{maxWidth:1200,margin:"auto",padding:"8px 22px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:20,alignItems:"center",flexWrap:"wrap"}}>
+          <span><MapPin size={14} style={{verticalAlign:"middle",marginRight:5}}/>চট্টগ্রাম, বাংলাদেশ</span>
+          <span><Phone size={14} style={{verticalAlign:"middle",marginRight:5}}/>+880 1711-123456</span>
+        </div>
+        <div style={{display:"flex",gap:12,alignItems:"center"}}><span><Clock3 size={14} style={{verticalAlign:"middle",marginRight:5}}/>সকাল ৮টা - রাত ১০টা</span><span style={{fontSize:17}}>🔵 🔴 🟢</span></div>
       </div>
     </div>
+    <div style={{maxWidth:1200,margin:"auto",padding:"12px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:15,flexWrap:"wrap"}}>
+      <Link to="/" style={{display:"flex",alignItems:"center",gap:12,textDecoration:"none",color:"#07366B",minWidth:245}}>
+        <span style={{width:122,height:72,display:"grid",placeItems:"center",position:"relative",color:"#0755A0"}}>
+          <CarFront size={78} strokeWidth={1.8}/>
+          <b style={{position:"absolute",bottom:0,fontSize:12,letterSpacing:2,background:"#fff",padding:"0 5px"}}>CDB</b>
+        </span>
+        <span style={{fontSize:22,fontWeight:900,lineHeight:1.08}}>Chattogram<br/>Driver Bazar BD<small style={{display:"block",fontSize:12,marginTop:5}}>চালক ও গাড়ির মালিকের মিলনমেলা</small></span>
+      </Link>
+      <button onClick={()=>setOpen(!open)} style={{display:"none",border:0,background:"#EAF4FF",color:"#07366B",padding:10,borderRadius:9}} className="cdb-menu"><Menu/></button>
+      <nav className="cdb-nav" style={{display:"flex",gap:22,alignItems:"center",flexWrap:"wrap"}}>
+        <NavLink to="/" style={({isActive})=>({...navStyle({isActive}),background:isActive?"#0865B8":"transparent",color:isActive?"#fff":"#152B45",padding:"12px 17px",borderRadius:10,boxShadow:isActive?"0 3px 9px #0755a033":"none"})}>⌂ হোম</NavLink>
+        <NavLink to="/drivers" style={navStyle}>ড্রাইভার খুঁজুন</NavLink>
+        <NavLink to="/jobs" style={navStyle}>ড্রাইভার চাকরি</NavLink>
+        <NavLink to="/duties" style={navStyle}>বদলি ডিউটি</NavLink>
+        {user&&<NavLink to="/dashboard" style={navStyle}>ড্যাশবোর্ড</NavLink>}
+        {!user?<><Link to="/login" style={{...smallReg,background:"#E6F3FF",padding:"12px 22px",fontSize:15}}>♟ লগইন</Link><Link to="/register?role=driver" style={{...smallReg,padding:"12px 15px"}}>রেজিস্ট্রেশন</Link></>:<button onClick={signOut} style={plainBtn}><LogOut size={16}/> লগআউট</button>}
+      </nav>
+    </div>
+    <style>{`@media(max-width:760px){.cdb-menu{display:block!important}.cdb-nav{width:100%;gap:9px!important;justify-content:center}.cdb-nav a{font-size:13px}}`}</style>
   </header>;
 }
 const navStyle = ({isActive}) => ({textDecoration:"none",color:isActive?C.navy2:C.muted,fontWeight:800});
@@ -93,38 +104,53 @@ const smallReg={textDecoration:"none",fontSize:12,fontWeight:800,color:C.navy,ba
 
 function Home() {
   const actions = [
-    {to:"/drivers",icon:<Search size={30}/>,title:"অভিজ্ঞ ড্রাইভার খুঁজুন",desc:"অভিজ্ঞ ও দক্ষ ড্রাইভারের প্রোফাইল দেখুন"},
-    {to:"/jobs",icon:<BriefcaseBusiness size={30}/>,title:"ড্রাইভার চাকরি",desc:"চট্টগ্রাম জেলার চাকরির বিজ্ঞাপন দেখুন"},
-    {to:"/duties",icon:<CalendarClock size={30}/>,title:"বদলি ডিউটি পোস্ট",desc:"অস্থায়ী ও দৈনিক ডিউটি খুঁজুন"},
-    {to:"/guest-job",icon:<FileText size={30}/>,title:"রেজিস্ট্রেশন ছাড়া মালিক সরাসরি চাকরি পোস্ট",desc:"মালিকের তথ্য ও মোবাইল যাচাই করে পোস্টের আবেদন দিন"}
+    {to:"/drivers",icon:<Search size={39}/>,title:"অভিজ্ঞ ড্রাইভার খুঁজুন",desc:"অভিজ্ঞ ও দক্ষ ড্রাইভারের প্রোফাইল দেখুন",cta:"এখনই দেখুন"},
+    {to:"/jobs",icon:<BriefcaseBusiness size={39}/>,title:"ড্রাইভার চাকরি",desc:"চট্টগ্রাম জেলার চাকরির বিজ্ঞাপন দেখুন",cta:"চাকরি দেখুন"},
+    {to:"/duties",icon:<CalendarClock size={39}/>,title:"বদলি ডিউটি পোস্ট",desc:"অস্থায়ী ও দৈনিক ডিউটি খুঁজুন",cta:"ডিউটি দেখুন"},
+    {to:"/guest-job",icon:<FileText size={39}/>,title:"রেজিস্ট্রেশন ছাড়া মালিকের চাকরি পোস্ট",desc:"মালিকের তথ্য যাচাই করে চাকরির পোস্টের আবেদন দিন",cta:"এখনই পোস্ট করুন"}
   ];
-  return <main style={{maxWidth:1120,margin:"auto",padding:"20px 16px 32px"}}>
-    <section style={{background:"linear-gradient(135deg,#F0F8FE 0%,#E5F2FC 55%,#F8FCFF 100%)",color:C.navy,padding:"30px 22px",borderRadius:20,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:"0 8px 28px #173b630d"}}>
-      <div style={{textAlign:"center"}}>
-        <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"#52718F"}}>চালক ও গাড়ির মালিকের মিলনমেলা</div>
-        <h1 style={{fontSize:"clamp(27px,5vw,43px)",margin:"8px 0 17px"}}>Chattogram Driver Bazar BD</h1>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:15,alignItems:"center"}}>
-        <div>
-          <h2 style={{fontSize:25,margin:"0 0 8px"}}>আপনার প্রয়োজনের ড্রাইভার ও চাকরি খুঁজুন</h2>
-          <p style={{lineHeight:1.8,color:"#526D87",margin:0}}>চট্টগ্রাম জেলার ড্রাইভার এবং গাড়ির মালিকদের জন্য সহজ কর্মসংস্থান প্ল্যাটফর্ম।</p>
+  return <main style={{background:"linear-gradient(180deg,#F1F8FF 0%,#FFFFFF 65%,#EAF5FF 100%)",paddingBottom:0}}>
+    <section className="cdb-hero" style={{
+      maxWidth:1440,margin:"0 auto",position:"relative",overflow:"hidden",
+      minHeight:590,display:"flex",alignItems:"center",padding:"35px 3.2%",
+      backgroundColor:"#E8F5FF",
+      backgroundImage:`linear-gradient(90deg,rgba(235,247,255,.98) 0%,rgba(235,247,255,.93) 36%,rgba(235,247,255,.38) 54%,rgba(235,247,255,0) 72%),url('${import.meta.env.BASE_URL}cdb-hero.png')`,
+      backgroundSize:"cover",backgroundPosition:"center",
+      borderRadius:"0 0 22px 22px"
+    }}>
+      <div style={{width:"52%",maxWidth:670,position:"relative",zIndex:1}}>
+        <h2 style={{fontSize:"clamp(21px,2.4vw,31px)",lineHeight:1.3,color:"#0B315E",fontWeight:900,margin:"0 0 12px"}}>চট্টগ্রাম জেলার চালক ও গাড়ির<br/>মালিকের জন্য নির্ভরযোগ্য প্ল্যাটফর্ম</h2>
+        <h1 style={{fontSize:"clamp(39px,5.2vw,76px)",lineHeight:1.02,letterSpacing:-2,color:"#082D5D",fontWeight:950,margin:"0 0 16px"}}>Chattogram<br/>Driver Bazar BD</h1>
+        <div style={{display:"inline-block",background:"linear-gradient(90deg,#086CC4,#07519A)",color:"#fff",fontSize:"clamp(17px,2vw,25px)",fontWeight:900,padding:"8px 20px",margin:"0 0 14px",borderRadius:"0 25px 25px 0"}}>আপনার প্রয়োজনের ড্রাইভার ও চাকরি খুঁজুন</div>
+        <div style={{display:"grid",gap:7,color:"#152D49",fontSize:"clamp(15px,1.5vw,19px)",fontWeight:700,marginBottom:20}}>
+          <span>🟢 অভিজ্ঞ ড্রাইভার খুঁজুন</span><span>🟢 ড্রাইভার চাকরির সুযোগ</span><span>🟢 বদলি ডিউটি পোস্ট</span><span>🟢 মালিক ও চালকের সরাসরি যোগাযোগ</span>
         </div>
-        <div style={{background:"linear-gradient(145deg,#DCEEFF,#FFFFFF)",color:C.navy,border:`1px solid ${C.border}`,borderRadius:15,minHeight:150,display:"grid",placeItems:"center",padding:15,textAlign:"center"}}>
-          <CarFront size={58}/><b>গাড়ি ও ড্রাইভার</b><span style={{fontSize:12}}>বিশ্বস্ত কাজের সংযোগ</span>
+        <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+          <Link to="/drivers" style={{background:"#07396F",color:"#fff",textDecoration:"none",padding:"13px 23px",borderRadius:30,fontWeight:900,fontSize:17,display:"inline-flex",alignItems:"center",gap:9,boxShadow:"0 4px 10px #082f5530"}}><Search size={20}/> ড্রাইভার খুঁজুন</Link>
+          <Link to="/jobs" style={{background:"#F8FCFF",color:"#07396F",textDecoration:"none",padding:"12px 23px",borderRadius:30,fontWeight:900,fontSize:17,border:"2px solid #0A4D8A",display:"inline-flex",alignItems:"center",gap:9}}><BriefcaseBusiness size={20}/> চাকরি দেখুন</Link>
         </div>
       </div>
     </section>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:13,marginTop:18}}>
-      {actions.map((a,i)=><Link key={a.to} to={a.to} style={{textDecoration:"none",background:"#fff",border:`1px solid ${C.border}`,borderRadius:15,padding:"19px 13px",minHeight:145,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:9,textAlign:"center",color:C.navy,boxShadow:"0 3px 12px #102d500b"}}>
-        <span style={{width:56,height:56,borderRadius:15,background:C.pale,display:"grid",placeItems:"center",color:C.navy2}}>{a.icon}</span>
-        <b style={{fontSize:16,lineHeight:1.5}}>{a.title}</b>
-        <span style={{fontSize:12,color:C.muted,lineHeight:1.5}}>{a.desc}</span>
-      </Link>)}
-    </div>
-    <p style={{textAlign:"center",color:C.muted,fontSize:12,marginTop:18}}>সেবা শুধুমাত্র চট্টগ্রাম জেলার জন্য।</p>
+    <section style={{maxWidth:1200,margin:"0 auto",padding:"18px 22px 24px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:13}} className="cdb-services">
+        {actions.map((a,i)=><Link key={a.to} to={a.to} style={{textDecoration:"none",background:"#fff",border:"1px solid #D8E8F7",borderRadius:19,padding:"19px 13px 17px",minHeight:280,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"space-between",gap:9,textAlign:"center",color:"#092F61",boxShadow:"0 5px 14px #123c6018"}}>
+          <span style={{width:92,height:92,borderRadius:"50%",background:"#D9EEFF",display:"grid",placeItems:"center",color:"#0755A0"}}>{a.icon}</span>
+          <b style={{fontSize:21,lineHeight:1.35}}>{a.title}</b>
+          <span style={{fontSize:16,color:"#25384E",lineHeight:1.5}}>{a.desc}</span>
+          <span style={{background:"#07396F",color:"#fff",padding:"10px 19px",borderRadius:25,fontSize:15,fontWeight:900,minWidth:145}}>{a.cta}　→</span>
+        </Link>)}
+      </div>
+    </section>
+    <section style={{background:"linear-gradient(180deg,#087BCF 0%,#07366B 20%,#062C58 100%)",color:"#fff",padding:"32px 20px 25px",textAlign:"center",borderTop:"7px solid #35B7F4",position:"relative",overflow:"hidden"}}>
+      <div style={{maxWidth:1100,margin:"auto",display:"flex",justifyContent:"space-between",alignItems:"center",gap:20,flexWrap:"wrap"}}>
+        <CarFront size={76} strokeWidth={1.4}/>
+        <div><div style={{fontSize:20,fontWeight:900}}>© Chattogram Driver Bazar BD · চট্টগ্রাম জেলা</div><div style={{fontSize:17,marginTop:8}}>বিশ্বস্ত সংযোগ, নিরাপদ ভবিষ্যৎ</div></div>
+        <div style={{fontSize:45}}>🌉</div>
+      </div>
+    </section>
+    <style>{`@media(max-width:850px){.cdb-hero{min-height:520px!important;background-position:58% center!important}.cdb-services{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cdb-services a{min-height:235px!important}}@media(max-width:560px){.cdb-hero{min-height:620px!important;align-items:flex-start!important;padding:25px 18px!important;background-image:linear-gradient(180deg,rgba(235,247,255,.98) 0%,rgba(235,247,255,.94) 43%,rgba(235,247,255,.1) 100%),url('${import.meta.env.BASE_URL}cdb-hero.png')!important;background-position:60% center!important}.cdb-hero>div{width:100%!important}.cdb-services{gap:10px!important}.cdb-services a{padding:14px 8px!important;min-height:225px!important}.cdb-services b{font-size:16px!important}.cdb-services span:nth-child(3){font-size:13px!important}.cdb-services span:first-child{width:66px!important;height:66px!important}.cdb-services span:first-child svg{width:30px!important;height:30px!important}}`}</style>
   </main>;
 }
-
 function Auth({mode, refresh}) {
   const nav = useNavigate();
   const params = new URLSearchParams(window.location.search);
@@ -468,7 +494,7 @@ function App() {
       <Route path="/dashboard" element={user?<Dashboard user={user} profile={profile} refresh={refresh}/>:<Auth mode="login" refresh={refresh}/>}/>
       <Route path="*" element={<Home/>}/>
     </Routes>
-    <footer style={{textAlign:"center",padding:25,color:C.muted}}>© Chattogram Driver Bazar BD · চট্টগ্রাম জেলা</footer>
+
   </div>;
 }
 const mainStyle={maxWidth:1120,margin:"auto",padding:"24px 16px"};

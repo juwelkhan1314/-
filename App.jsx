@@ -8,16 +8,10 @@ import {
 } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 
-cconst C = {
-  navy: "#183B5B",
-  navy2: "#285A82",
-  pale: "#EAF4FC",
-  border: "#DFE8F0",
-  muted: "#718096",
-  red: "#C04444",
-  white: "#FFFFFF",
-  bg: "#F7FAFD",
-  green: "#26836B"
+const C = {
+  navy: "#173B63", navy2: "#24527A", pale: "#EAF5FC",
+  border: "#DCE8F2", muted: "#647B91", red: "#B42318",
+  white: "#FFFFFF", bg: "#F7FBFE", green: "#176B52"
 };
 
 function Btn({ children, onClick, type="button", disabled=false, tone="navy" }) {
@@ -47,26 +41,10 @@ function SelectField({label, options, ...props}) {
   </label>;
 }
 function Panel({title, children, right}) {
-  return <section style={{
-    background:"#FFFFFF",
-    border:`1px solid ${C.border}`,
-    borderRadius:18,
-    padding:20,
-    marginBottom:16,
-    boxShadow:"0 5px 20px rgba(40,90,130,0.06)"
-  }}>
-    <div style={{
-      display:"flex",
-      justifyContent:"space-between",
-      alignItems:"center",
-      gap:10,
-      flexWrap:"wrap",
-      marginBottom:15
-    }}>
-      <h2 style={{margin:0,color:C.navy,fontSize:21}}>{title}</h2>
-      {right}
-    </div>
-    {children}
+  return <section style={{background:"#fff",border:`1px solid ${C.border}`,borderRadius:15,padding:16,marginBottom:16}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:13,flexWrap:"wrap"}}>
+      <h2 style={{fontSize:19,margin:0,color:C.navy}}>{title}</h2>{right}
+    </div>{children}
   </section>;
 }
 function Notice({text, error}) {
@@ -121,17 +99,17 @@ function Home() {
     {to:"/guest-job",icon:<FileText size={30}/>,title:"রেজিস্ট্রেশন ছাড়া মালিক সরাসরি চাকরি পোস্ট",desc:"মালিকের তথ্য ও মোবাইল যাচাই করে পোস্টের আবেদন দিন"}
   ];
   return <main style={{maxWidth:1120,margin:"auto",padding:"20px 16px 32px"}}>
-    <section style={{background:C.navy,color:"#fff",padding:"30px 22px",borderRadius:20,overflow:"hidden"}}>
+    <section style={{background:"linear-gradient(135deg,#F0F8FE 0%,#E5F2FC 55%,#F8FCFF 100%)",color:C.navy,padding:"30px 22px",borderRadius:20,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:"0 8px 28px #173b630d"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"color:"#52718F"৪}>চট্টগ্রাম জেলার চালক ও গাড়ির মালিকের মিলনমেলা</div>
+        <div style={{fontSize:13,fontWeight:800,letterSpacing:1,color:"#52718F"}}>চালক ও গাড়ির মালিকের মিলনমেলা</div>
         <h1 style={{fontSize:"clamp(27px,5vw,43px)",margin:"8px 0 17px"}}>Chattogram Driver Bazar BD</h1>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:15,alignItems:"center"}}>
         <div>
           <h2 style={{fontSize:25,margin:"0 0 8px"}}>আপনার প্রয়োজনের ড্রাইভার ও চাকরি খুঁজুন</h2>
-          <p style={{lineHeight:1.8,color:"#52677D",margin:0}}>চট্টগ্রাম জেলার ড্রাইভার এবং গাড়ির মালিকদের জন্য সহজ কর্মসংস্থান প্ল্যাটফর্ম।</p>
+          <p style={{lineHeight:1.8,color:"#526D87",margin:0}}>চট্টগ্রাম জেলার ড্রাইভার এবং গাড়ির মালিকদের জন্য সহজ কর্মসংস্থান প্ল্যাটফর্ম।</p>
         </div>
-        <div style={{background:"#DCE7F2",color:C.navy,borderRadius:15,minHeight:150,display:"grid",placeItems:"center",padding:15,textAlign:"center"}}>
+        <div style={{background:"linear-gradient(145deg,#DCEEFF,#FFFFFF)",color:C.navy,border:`1px solid ${C.border}`,borderRadius:15,minHeight:150,display:"grid",placeItems:"center",padding:15,textAlign:"center"}}>
           <CarFront size={58}/><b>গাড়ি ও ড্রাইভার</b><span style={{fontSize:12}}>বিশ্বস্ত কাজের সংযোগ</span>
         </div>
       </div>

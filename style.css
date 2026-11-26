@@ -21,3 +21,16 @@
     max-width: 100% !important;
   }
 }
+
+/* Desktop Full Page Height Fix */
+html, body, #root {
+  min-height: 100%;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+main {
+  min-height: 100vh;
+}

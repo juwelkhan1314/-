@@ -168,49 +168,348 @@ function Footer() {
   );
 }
 
-function Auth({mode, refresh}) {
+
+function Auth({ mode, refresh }) {
   const nav = useNavigate();
+
   const params = new URLSearchParams(window.location.search);
-  const [email,setEmail]=useState("");
-  const [password,setPassword]=useState("");
-  const [name,setName]=useState("");
-  const [phone,setPhone]=useState("");
-  const [role,setRole]=useState(params.get("role")==="owner"?"owner":"driver");
-  const [msg,setMsg]=useState("");
-  const [err,setErr]=useState(false);
-  const submit = async e => {
-    e.preventDefault(); setMsg(""); setErr(false);
-    if (!isSupabaseConfigured) {setMsg("Supabase কনফিগার করা নেই।");setErr(true);return;}
-    try {
-      if (mode==="register") {
-        const {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name:name,phone,role}}});
-        if(error) throw error;
-        if(data.user) {
-          const {error:pe}=await supabase.from("profiles").upsert({id:data.user.id,role,full_name:name,phone},{onConflict:"id"});
-          if(pe) throw pe;
-        }
-        setMsg("রেজিস্ট্রেশন হয়েছে। ইমেইল যাচাই করতে বললে যাচাই করে লগইন করুন।");
-      } else {
-        const {error}=await supabase.auth.signInWithPassword({email,password});
-        if(error) throw error;
-        await refresh(); nav("/dashboard");
-      }
-    } catch(e) {setMsg(e.message || "সমস্যা হয়েছে");setErr(true);}
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState(
+    params.get("role") === "owner" ? "owner" : "driver"
+  );
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const isRegister = mode === "register";
+
+  const passwordChecks = [
+    { label: "কমপক্ষে ৮ অক্ষর", ok: password.length >= 8 },
+    { label: "একটি বড় হাতের ইংরেজি অক্ষর", ok: /[A-Z]/.test(password) },
+    { label: "একটি ছোট হাতের ইংরেজি অক্ষর", ok: /[a-z]/.test(password) },
+    { label: "একটি সংখ্যা", ok: /[0-9]/.test(password) }
+  ];
+
+  const passwordStrong = passwordChecks.every(item => item.ok);
+
+  const friendlyError = (message) => {
+    const m = (message || "").toLowerCase();
+
+    if (m.includes("already registered") || m.includes("already been registered")) {
+      return "এই ইমেইল দিয়ে আগে থেকেই অ্যাকাউন্ট খোলা আছে।";
+    }
+    if (m.includes("invalid email")) {
+      return "সঠিক ইমেইল ঠিকানা লিখুন।";
+    }
+    if (m.includes("password")) {
+      return "পাসওয়ার্ড গ্রহণ করা যায়নি। পাসওয়ার্ডের নিয়মগুলো পরীক্ষা করুন।";
+    }
+    if (m.includes("rate limit")) {
+      return "অনেকবার চেষ্টা করা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।";
+    }
+    if (m.includes("network") || m.includes("fetch")) {
+      return "ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
+    }
+
+    return message || "দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।";
   };
-  return <div style={centerPage}><form onSubmit={submit} style={authBox}>
-    <h1 style={{marginTop:0,color:C.navy}}>{mode==="register"?"নতুন অ্যাকাউন্ট":"লগইন"}</h1>
-    {mode==="register" && <>
-      <SelectField label="অ্যাকাউন্টের ধরন" value={role} onChange={e=>setRole(e.target.value)} options={[{value:"driver",label:"ড্রাইভার"},{value:"owner",label:"গাড়ির মালিক"}]}/>
-      <Field label="আপনার নাম" value={name} onChange={e=>setName(e.target.value)} required/>
-      <Field label="মোবাইল নম্বর" value={phone} onChange={e=>setPhone(e.target.value)} required/>
-    </>}
-    <Field label="ইমেইল" type="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
-    <Field label="পাসওয়ার্ড" type="password" value={password} onChange={e=>setPassword(e.target.value)} required/>
-    <Btn type="submit">{mode==="register"?"রেজিস্ট্রেশন করুন":"লগইন করুন"}</Btn>
-    <Notice text={msg} error={err}/>
-    <p>{mode==="register"?<Link to="/login">আগে অ্যাকাউন্ট আছে? লগইন</Link>:<Link to="/register">নতুন অ্যাকাউন্ট খুলুন</Link>}</p>
-  </form></div>;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setMsg("");
+    setErr(false);
+
+    if (!isSupabaseConfigured) {
+      setMsg("Supabase কনফিগার করা নেই।");
+      setErr(true);
+      return;
+    }
+
+    if (loading) return;
+
+    if (isRegister) {
+      const cleanPhone = phone.replace(/[\s-]/g, "");
+
+      const validPhone =
+        /^01[3-9]\d{8}$/.test(cleanPhone) ||
+        /^\+8801[3-9]\d{8}$/.test(cleanPhone) ||
+        /^8801[3-9]\d{8}$/.test(cleanPhone);
+
+      if (!name.trim()) {
+        setMsg("আপনার নাম লিখুন।");
+        setErr(true);
+        return;
+      }
+
+      if (!validPhone) {
+        setMsg("সঠিক বাংলাদেশের মোবাইল নম্বর লিখুন। যেমন: 01XXXXXXXXX");
+        setErr(true);
+        return;
+      }
+
+      if (!passwordStrong) {
+        setMsg("পাসওয়ার্ডের সব শর্ত পূরণ করুন।");
+        setErr(true);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setMsg("দুইবার দেওয়া পাসওয়ার্ড মিলছে না।");
+        setErr(true);
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      if (isRegister) {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+          options: {
+            data: {
+              full_name: name.trim(),
+              phone: phone.trim(),
+              role
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        // ইমেইল যাচাই বন্ধ থাকলে সক্রিয় সেশনে প্রোফাইল তৈরি
+        if (data.session && data.user) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert({
+              id: data.user.id,
+              role,
+              full_name: name.trim(),
+              phone: phone.trim()
+            }, { onConflict: "id" });
+
+          if (profileError) throw profileError;
+        }
+
+        setMsg(
+          "অভিনন্দন! আপনার রেজিস্ট্রেশন সম্পন্ন হয়েছে। আপনার ইমেইল ইনবক্সে গিয়ে যাচাইয়ের লিংকে ক্লিক করুন। এরপর লগইন করতে পারবেন।"
+        );
+        setErr(false);
+        setPassword("");
+        setConfirmPassword("");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password
+        });
+
+        if (error) throw error;
+
+        await refresh();
+        nav("/dashboard");
+      }
+    } catch (e) {
+      setMsg(friendlyError(e.message));
+      setErr(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "12px",
+    border: `1px solid ${C.border}`,
+    borderRadius: 9,
+    fontSize: 15,
+    boxSizing: "border-box",
+    outlineColor: C.navy,
+    background: "#fff"
+  };
+
+  const labelStyle = {
+    display: "grid",
+    gap: 6,
+    fontWeight: 600,
+    color: C.navy,
+    fontSize: 14
+  };
+
+  const toggleStyle = {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: "translateY(-50%)",
+    border: "none",
+    background: "transparent",
+    color: C.navy,
+    cursor: "pointer",
+    fontSize: 12,
+    fontWeight: 700
+  };
+
+  return (
+    <div style={centerPage}>
+      <form onSubmit={submit} style={authBox}>
+        <h1 style={{ marginTop: 0, color: C.navy }}>
+          {isRegister ? "নতুন অ্যাকাউন্ট" : "লগইন"}
+        </h1>
+
+        {isRegister && (
+          <>
+            <label style={labelStyle}>
+              অ্যাকাউন্টের ধরন
+              <select
+                value={role}
+                onChange={e => setRole(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="driver">ড্রাইভার</option>
+                <option value="owner">গাড়ির মালিক</option>
+              </select>
+            </label>
+
+            <label style={labelStyle}>
+              আপনার নাম
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="আপনার পূর্ণ নাম"
+                required
+                style={inputStyle}
+              />
+            </label>
+
+            <label style={labelStyle}>
+              মোবাইল নম্বর
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="01XXXXXXXXX"
+                required
+                style={inputStyle}
+              />
+            </label>
+          </>
+        )}
+
+        <label style={labelStyle}>
+          ইমেইল
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="example@gmail.com"
+            required
+            style={inputStyle}
+          />
+        </label>
+
+        <label style={labelStyle}>
+          পাসওয়ার্ড
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="আপনার পাসওয়ার্ড"
+              required
+              style={{ ...inputStyle, paddingRight: 75 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={toggleStyle}
+            >
+              {showPassword ? "লুকান" : "দেখুন"}
+            </button>
+          </div>
+        </label>
+
+        {isRegister && (
+          <>
+            <div style={{
+              display: "grid",
+              gap: 5,
+              padding: 10,
+              background: "#F3F8FE",
+              borderRadius: 9,
+              fontSize: 12
+            }}>
+              <strong style={{ color: C.navy }}>পাসওয়ার্ডের শক্তি</strong>
+
+              {passwordChecks.map((item, index) => (
+                <div key={index} style={{
+                  color: item.ok ? "#16834A" : "#777"
+                }}>
+                  {item.ok ? "✓" : "○"} {item.label}
+                </div>
+              ))}
+            </div>
+
+            <label style={labelStyle}>
+              পাসওয়ার্ড আবার লিখুন
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="একই পাসওয়ার্ড আবার লিখুন"
+                  required
+                  style={{ ...inputStyle, paddingRight: 75 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  style={toggleStyle}
+                >
+                  {showConfirm ? "লুকান" : "দেখুন"}
+                </button>
+              </div>
+              {confirmPassword && (
+                <span style={{
+                  color: password === confirmPassword ? "#16834A" : "#D32F2F",
+                  fontSize: 12
+                }}>
+                  {password === confirmPassword
+                    ? "✓ পাসওয়ার্ড মিলেছে"
+                    : "✕ পাসওয়ার্ড মিলছে না"}
+                </span>
+              )}
+            </label>
+          </>
+        )}
+
+        <Btn type="submit" disabled={loading}>
+          {loading
+            ? "অপেক্ষা করুন..."
+            : isRegister
+              ? "রেজিস্ট্রেশন করুন"
+              : "লগইন করুন"}
+        </Btn>
+
+        <Notice text={msg} error={err} />
+
+        <p style={{ marginBottom: 0 }}>
+          {isRegister
+            ? <Link to="/login">আগে অ্যাকাউন্ট আছে? লগইন করুন</Link>
+            : <Link to="/register">নতুন অ্যাকাউন্ট খুলুন</Link>}
+        </p>
+      </form>
+    </div>
+  );
 }
+
 const centerPage={minHeight:"65vh",display:"grid",placeItems:"center",padding:16};
 const authBox={background:"#fff",border:`1px solid ${C.border}`,borderRadius:14,padding:22,width:"min(100%,430px)",display:"grid",gap:13};
 

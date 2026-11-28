@@ -1,4 +1,4 @@
-
+হ
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import {
@@ -348,9 +348,10 @@ function Auth({ mode, refresh }) {
   };
 
   // ধাপ ১: ইমেইলে রিসেট OTP পাঠানো
- // ধাপ ১: ইমেইলে রিসেট OTP পাঠানো
+ // ইমেইলে পাসওয়ার্ড রিসেট OTP পাঠানো
 const sendResetCode = async e => {
   if (e) e.preventDefault();
+
   setMsg("");
   setErr(false);
 
@@ -371,15 +372,39 @@ const sendResetCode = async e => {
   setResetSending(true);
 
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+    const { data, error } =
+      await supabase.auth.resetPasswordForEmail(cleanEmail);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Password reset error:", error);
+      throw error;
+    }
+
+    console.log("Password reset response:", data);
 
     setForgotStep("otp");
-    setMsg("আপনার ইমেইলে ৬ সংখ্যার কোড পাঠানো হয়েছে। Inbox এবং Spam ফোল্ডার পরীক্ষা করুন।");
+    setMsg("আপনার ইমেইলে কোড পাঠানো হয়েছে। Inbox এবং Spam ফোল্ডার পরীক্ষা করুন।");
+    setErr(false);
+
   } catch (e) {
-    setMsg(friendlyError(e.message));
+    console.error("OTP sending failed:", e);
+
+    const errorMessage =
+      e?.message ||
+      e?.error_description ||
+      e?.details ||
+      e?.hint ||
+      e?.code ||
+      "";
+
+    setMsg(
+      errorMessage
+        ? friendlyError(errorMessage)
+        : "কোড পাঠানো যায়নি। Supabase-এর Email Template ও Auth সেটিংস পরীক্ষা করতে হবে।"
+    );
+
     setErr(true);
+
   } finally {
     setResetSending(false);
   }

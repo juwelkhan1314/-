@@ -348,41 +348,42 @@ function Auth({ mode, refresh }) {
   };
 
   // ধাপ ১: ইমেইলে রিসেট OTP পাঠানো
-  const sendResetCode = async e => {
-    if (e) e.preventDefault();
-    setMsg("");
-    setErr(false);
+ // ধাপ ১: ইমেইলে রিসেট OTP পাঠানো
+const sendResetCode = async e => {
+  if (e) e.preventDefault();
+  setMsg("");
+  setErr(false);
 
-    if (!email.trim()) {
-      setMsg("আপনার Gmail ঠিকানা লিখুন।");
-      setErr(true);
-      return;
-    }
+  const cleanEmail = email.trim().toLowerCase();
 
-    if (!isSupabaseConfigured) {
-      setMsg("Supabase কনফিগার করা নেই।");
-      setErr(true);
-      return;
-    }
+  if (!cleanEmail) {
+    setMsg("আপনার Gmail ঠিকানা লিখুন।");
+    setErr(true);
+    return;
+  }
 
-    setResetSending(true);
-    try {
-      const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}`;
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        { redirectTo }
-      );
-      if (error) throw error;
+  if (!isSupabaseConfigured) {
+    setMsg("Supabase কনফিগার করা নেই।");
+    setErr(true);
+    return;
+  }
 
-      setForgotStep("otp");
-      setMsg("আপনার ইমেইলে ৬ সংখ্যার কোড পাঠানো হয়েছে। Inbox এবং Spam ফোল্ডার পরীক্ষা করুন।");
-    } catch (e) {
-      setMsg(friendlyError(e.message));
-      setErr(true);
-    } finally {
-      setResetSending(false);
-    }
-  };
+  setResetSending(true);
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
+
+    if (error) throw error;
+
+    setForgotStep("otp");
+    setMsg("আপনার ইমেইলে ৬ সংখ্যার কোড পাঠানো হয়েছে। Inbox এবং Spam ফোল্ডার পরীক্ষা করুন।");
+  } catch (e) {
+    setMsg(friendlyError(e.message));
+    setErr(true);
+  } finally {
+    setResetSending(false);
+  }
+};
 
   // ধাপ ২: ইমেইলের OTP যাচাই
   const verifyResetCode = async e => {

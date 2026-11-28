@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import {
@@ -303,23 +304,15 @@ function Footer() {
 
 function Auth({ mode, refresh }) {
   const nav = useNavigate();
-  const params = new URLSearchParams(
-    window.location.hash.split("?")[1] || window.location.search
-  );
-
+  const params = new URLSearchParams(window.location.hash.split("?")[1] || window.location.search);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState(
-    params.get("role") === "owner" ? "owner" : "driver"
-  );
-
+  const [role, setRole] = useState(params.get("role") === "owner" ? "owner" : "driver");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [forgotMode, setForgotMode] = useState(false);
-
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -333,97 +326,39 @@ function Auth({ mode, refresh }) {
     { label: "একটি ছোট হাতের ইংরেজি অক্ষর", ok: /[a-z]/.test(password) },
     { label: "একটি সংখ্যা", ok: /[0-9]/.test(password) }
   ];
-
   const passwordStrong = passwordChecks.every(x => x.ok);
 
   const friendlyError = message => {
     const m = (message || "").toLowerCase();
-
-    if (m.includes("invalid login credentials"))
-      return "ইমেইল অথবা পাসওয়ার্ড ভুল হয়েছে। আবার পরীক্ষা করুন।";
-
-    if (m.includes("email not confirmed"))
-      return "আপনার ইমেইল এখনো যাচাই করা হয়নি। ইনবক্স থেকে ইমেইল যাচাই করুন।";
-
-    if (m.includes("already registered") || m.includes("already been registered"))
-      return "এই ইমেইল দিয়ে আগে থেকেই অ্যাকাউন্ট খোলা আছে।";
-
-    if (m.includes("invalid email"))
-      return "সঠিক ইমেইল ঠিকানা লিখুন।";
-
-    if (m.includes("rate limit"))
-      return "অনেকবার চেষ্টা করা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।";
-
-    if (m.includes("network") || m.includes("fetch"))
-      return "ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
-
-    if (m.includes("password"))
-      return "পাসওয়ার্ড গ্রহণ করা যায়নি। পাসওয়ার্ডের নিয়মগুলো পরীক্ষা করুন।";
-
+    if (m.includes("invalid login credentials")) return "ইমেইল অথবা পাসওয়ার্ড ভুল হয়েছে। আবার পরীক্ষা করুন।";
+    if (m.includes("email not confirmed")) return "আপনার ইমেইল এখনো যাচাই করা হয়নি। ইনবক্স থেকে ইমেইল যাচাই করুন।";
+    if (m.includes("already registered") || m.includes("already been registered")) return "এই ইমেইল দিয়ে আগে থেকেই অ্যাকাউন্ট খোলা আছে।";
+    if (m.includes("invalid email")) return "সঠিক ইমেইল ঠিকানা লিখুন।";
+    if (m.includes("rate limit")) return "অনেকবার চেষ্টা করা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।";
+    if (m.includes("network") || m.includes("fetch")) return "ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
+    if (m.includes("password")) return "পাসওয়ার্ড গ্রহণ করা যায়নি। পাসওয়ার্ডের নিয়মগুলো পরীক্ষা করুন।";
     return message || "দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।";
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: 12,
-    border: `1px solid ${C.border}`,
-    borderRadius: 9,
-    fontSize: 15,
-    boxSizing: "border-box",
-    background: "#fff"
-  };
-
-  const labelStyle = {
-    display: "grid",
-    gap: 6,
-    fontWeight: 600,
-    color: C.navy,
-    fontSize: 14
-  };
-
-  const toggleStyle = {
-    position: "absolute",
-    right: 10,
-    top: "50%",
-    transform: "translateY(-50%)",
-    border: 0,
-    background: "transparent",
-    color: C.navy,
-    cursor: "pointer",
-    fontWeight: 700
-  };
-
-  // পাসওয়ার্ড রিসেট ইমেইল পাঠানো
-  const sendResetLink = async e => {
-    if (e) e.preventDefault();
-
+  const sendResetLink = async () => {
     setMsg("");
     setErr(false);
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail) {
-      setMsg("আপনার অ্যাকাউন্টের ইমেইল ঠিকানা লিখুন।");
+    if (!email.trim()) {
+      setMsg("পাসওয়ার্ড রিসেট করতে আগে আপনার ইমেইল লিখুন।");
       setErr(true);
       return;
     }
 
     setResetSending(true);
-
     try {
-      const redirectTo =
-        `${window.location.origin}${import.meta.env.BASE_URL}#/reset-password`;
-
+      const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}`;
       const { error } = await supabase.auth.resetPasswordForEmail(
-        cleanEmail,
+        email.trim().toLowerCase(),
         { redirectTo }
       );
-
       if (error) throw error;
-
-      setMsg(
-        "পাসওয়ার্ড পরিবর্তনের লিংক আপনার ইমেইলে পাঠানো হয়েছে। ইনবক্স ও Spam ফোল্ডার পরীক্ষা করুন।"
-      );
+      setMsg("পাসওয়ার্ড পরিবর্তনের লিংক আপনার ইমেইলে পাঠানো হয়েছে। ইনবক্স ও Spam ফোল্ডার পরীক্ষা করুন।");
     } catch (e) {
       setMsg(friendlyError(e.message));
       setErr(true);
@@ -432,7 +367,6 @@ function Auth({ mode, refresh }) {
     }
   };
 
-  // লগইন ও রেজিস্ট্রেশন
   const submit = async e => {
     e.preventDefault();
     setMsg("");
@@ -443,12 +377,10 @@ function Auth({ mode, refresh }) {
       setErr(true);
       return;
     }
-
     if (loading) return;
 
     if (isRegister) {
       const cleanPhone = phone.replace(/[\s-]/g, "");
-
       const validPhone =
         /^01[3-9]\d{8}$/.test(cleanPhone) ||
         /^\+8801[3-9]\d{8}$/.test(cleanPhone) ||
@@ -459,19 +391,16 @@ function Auth({ mode, refresh }) {
         setErr(true);
         return;
       }
-
       if (!validPhone) {
         setMsg("সঠিক বাংলাদেশের মোবাইল নম্বর লিখুন। যেমন: 01XXXXXXXXX");
         setErr(true);
         return;
       }
-
       if (!passwordStrong) {
         setMsg("পাসওয়ার্ডের সব শর্ত পূরণ করুন।");
         setErr(true);
         return;
       }
-
       if (password !== confirmPassword) {
         setMsg("দুইবার দেওয়া পাসওয়ার্ড মিলছে না।");
         setErr(true);
@@ -480,7 +409,6 @@ function Auth({ mode, refresh }) {
     }
 
     setLoading(true);
-
     try {
       if (isRegister) {
         const { data, error } = await supabase.auth.signUp({
@@ -494,7 +422,6 @@ function Auth({ mode, refresh }) {
             }
           }
         });
-
         if (error) throw error;
 
         if (data.session && data.user) {
@@ -504,29 +431,21 @@ function Auth({ mode, refresh }) {
             full_name: name.trim(),
             phone: phone.trim()
           }, { onConflict: "id" });
-
           if (pe) throw pe;
         }
 
-        setMsg(
-          "অভিনন্দন! রেজিস্ট্রেশন সম্পন্ন হয়েছে। আপনার ইমেইল ইনবক্সে গিয়ে যাচাইয়ের লিংকে ক্লিক করুন। এরপর লগইন করতে পারবেন।"
-        );
-
+        setMsg("অভিনন্দন! রেজিস্ট্রেশন সম্পন্ন হয়েছে। আপনার ইমেইল ইনবক্সে গিয়ে যাচাইয়ের লিংকে ক্লিক করুন। এরপর লগইন করতে পারবেন।");
         setPassword("");
         setConfirmPassword("");
-
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
           password
         });
-
         if (error) throw error;
-
         await refresh();
         nav("/dashboard");
       }
-
     } catch (e) {
       setMsg(friendlyError(e.message));
       setErr(true);
@@ -535,266 +454,254 @@ function Auth({ mode, refresh }) {
     }
   };
 
-  // আলাদা পাসওয়ার্ড রিসেট ইমেইল পেজ
-  if (!isRegister && forgotMode) {
-    return (
-      <div style={centerPage}>
-        <form onSubmit={sendResetLink} style={authBox}>
-          <div style={{
-            width: 62,
-            height: 62,
-            borderRadius: "50%",
-            background: C.pale,
-            display: "grid",
-            placeItems: "center",
-            margin: "0 auto",
-            color: C.navy2,
-            fontSize: 29
-          }}>
-            🔐
-          </div>
+  const inputStyle = {
+    width: "100%", padding: 12, border: `1px solid ${C.border}`,
+    borderRadius: 9, fontSize: 15, boxSizing: "border-box",
+    background: "#fff"
+  };
+  const labelStyle = {
+    display: "grid", gap: 6, fontWeight: 600, color: C.navy, fontSize: 14
+  };
+  const toggleStyle = {
+    position: "absolute", right: 10, top: "50%",
+    transform: "translateY(-50%)", border: 0,
+    background: "transparent", color: C.navy,
+    cursor: "pointer", fontWeight: 700
+  };
 
-          <h2 style={{
-            color: C.navy,
-            margin: 0,
-            textAlign: "center"
-          }}>
-            পাসওয়ার্ড রিসেট করুন
-          </h2>
+  return <div style={centerPage}>
+    <form onSubmit={submit} style={authBox}>
+      <h1 style={{ marginTop: 0, color: C.navy }}>
+        {isRegister ? "নতুন অ্যাকাউন্ট" : "লগইন"}
+      </h1>
 
-          <p style={{
-            color: C.muted,
-            fontSize: 14,
-            lineHeight: 1.7,
-            textAlign: "center",
-            margin: 0
-          }}>
-            আপনার অ্যাকাউন্ট খোলার সময় যে ইমেইল ব্যবহার করেছিলেন সেটি লিখুন।
-            আমরা সেই ইমেইলে পাসওয়ার্ড পরিবর্তনের লিংক পাঠাব।
-          </p>
-
-          <label style={labelStyle}>
-            আপনার ইমেইল ঠিকানা
-
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="example@gmail.com"
-              required
-              style={inputStyle}
-            />
-          </label>
-
-          <Btn type="submit" disabled={resetSending}>
-            {resetSending ? "লিংক পাঠানো হচ্ছে..." : "রিসেট লিংক পাঠান"}
-          </Btn>
-
-          <Notice text={msg} error={err} />
-
-          <button
-            type="button"
-            onClick={() => {
-              setForgotMode(false);
-              setMsg("");
-              setErr(false);
-            }}
-            style={{
-              border: 0,
-              background: "transparent",
-              color: C.navy2,
-              fontWeight: 700,
-              cursor: "pointer",
-              padding: 8
-            }}
-          >
-            ← লগইন পেজে ফিরে যান
-          </button>
-        </form>
-      </div>
-    );
-  }
-
-  // সাধারণ লগইন ও রেজিস্ট্রেশন পেজ
-  return (
-    <div style={centerPage}>
-      <form onSubmit={submit} style={authBox}>
-        <h1 style={{ marginTop: 0, color: C.navy }}>
-          {isRegister ? "নতুন অ্যাকাউন্ট" : "লগইন"}
-        </h1>
-
-        {isRegister && <>
-          <label style={labelStyle}>
-            অ্যাকাউন্টের ধরন
-
-            <select
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="driver">ড্রাইভার</option>
-              <option value="owner">গাড়ির মালিক</option>
-            </select>
-          </label>
-
-          <label style={labelStyle}>
-            আপনার নাম
-
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="আপনার পূর্ণ নাম"
-              required
-              style={inputStyle}
-            />
-          </label>
-
-          <label style={labelStyle}>
-            মোবাইল নম্বর
-
-            <input
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="01XXXXXXXXX"
-              required
-              style={inputStyle}
-            />
-          </label>
-        </>}
-
+      {isRegister && <>
         <label style={labelStyle}>
-          ইমেইল
-
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="example@gmail.com"
-            required
-            style={inputStyle}
-          />
+          অ্যাকাউন্টের ধরন
+          <select value={role} onChange={e => setRole(e.target.value)} style={inputStyle}>
+            <option value="driver">ড্রাইভার</option>
+            <option value="owner">গাড়ির মালিক</option>
+          </select>
         </label>
 
         <label style={labelStyle}>
-          পাসওয়ার্ড
+          আপনার নাম
+          <input value={name} onChange={e => setName(e.target.value)}
+            placeholder="আপনার পূর্ণ নাম" required style={inputStyle} />
+        </label>
 
+        <label style={labelStyle}>
+          মোবাইল নম্বর
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+            placeholder="01XXXXXXXXX" required style={inputStyle} />
+        </label>
+      </>}
+
+      <label style={labelStyle}>
+        ইমেইল
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="example@gmail.com" required style={inputStyle} />
+      </label>
+
+      <label style={labelStyle}>
+        পাসওয়ার্ড
+        <div style={{ position: "relative" }}>
+          <input type={showPassword ? "text" : "password"}
+            value={password} onChange={e => setPassword(e.target.value)}
+            placeholder="আপনার পাসওয়ার্ড" required
+            style={{ ...inputStyle, paddingRight: 75 }} />
+          <button type="button" onClick={() => setShowPassword(!showPassword)}
+            style={toggleStyle}>{showPassword ? "লুকান" : "দেখুন"}</button>
+        </div>
+      </label>
+
+      {isRegister && <>
+        <div style={{
+          display: "grid", gap: 5, padding: 10,
+          background: "#F3F8FE", borderRadius: 9, fontSize: 12
+        }}>
+          <strong style={{ color: C.navy }}>পাসওয়ার্ডের শক্তি</strong>
+          {passwordChecks.map((x, i) => <div key={i} style={{ color: x.ok ? "#16834A" : "#777" }}>
+            {x.ok ? "✓" : "○"} {x.label}
+          </div>)}
+        </div>
+
+        <label style={labelStyle}>
+          পাসওয়ার্ড আবার লিখুন
           <div style={{ position: "relative" }}>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="আপনার পাসওয়ার্ড"
-              required
-              style={{ ...inputStyle, paddingRight: 75 }}
-            />
-
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={toggleStyle}
-            >
-              {showPassword ? "লুকান" : "দেখুন"}
-            </button>
+            <input type={showConfirm ? "text" : "password"}
+              value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="একই পাসওয়ার্ড আবার লিখুন" required
+              style={{ ...inputStyle, paddingRight: 75 }} />
+            <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+              style={toggleStyle}>{showConfirm ? "লুকান" : "দেখুন"}</button>
           </div>
-        </label>
-
-        {isRegister && <>
-          <div style={{
-            display: "grid",
-            gap: 5,
-            padding: 10,
-            background: "#F3F8FE",
-            borderRadius: 9,
+          {confirmPassword && <span style={{
+            color: password === confirmPassword ? "#16834A" : "#D32F2F",
             fontSize: 12
           }}>
-            <strong style={{ color: C.navy }}>পাসওয়ার্ডের শক্তি</strong>
+            {password === confirmPassword ? "✓ পাসওয়ার্ড মিলেছে" : "✕ পাসওয়ার্ড মিলছে না"}
+          </span>}
+        </label>
+      </>}
 
-            {passwordChecks.map((x, i) => (
-              <div key={i} style={{
-                color: x.ok ? "#16834A" : "#777"
-              }}>
-                {x.ok ? "✓" : "○"} {x.label}
-              </div>
-            ))}
-          </div>
+      <Btn type="submit" disabled={loading}>
+        {loading ? "অপেক্ষা করুন..." : isRegister ? "রেজিস্ট্রেশন করুন" : "লগইন করুন"}
+      </Btn>
 
-          <label style={labelStyle}>
-            পাসওয়ার্ড আবার লিখুন
+      {!isRegister && <button type="button" onClick={sendResetLink}
+        disabled={resetSending || loading}
+        style={{
+          border: 0, background: "transparent", color: C.navy2,
+          fontWeight: 700, cursor: "pointer", textAlign: "left", padding: "5px 0"
+        }}>
+        {resetSending ? "লিংক পাঠানো হচ্ছে..." : "পাসওয়ার্ড ভুলে গেছেন? এখানে চাপুন"}
+      </button>}
 
-            <div style={{ position: "relative" }}>
-              <input
-                type={showConfirm ? "text" : "password"}
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="একই পাসওয়ার্ড আবার লিখুন"
-                required
-                style={{ ...inputStyle, paddingRight: 75 }}
-              />
+      <Notice text={msg} error={err} />
 
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                style={toggleStyle}
-              >
-                {showConfirm ? "লুকান" : "দেখুন"}
-              </button>
-            </div>
-
-            {confirmPassword && (
-              <span style={{
-                color: password === confirmPassword ? "#16834A" : "#D32F2F",
-                fontSize: 12
-              }}>
-                {password === confirmPassword
-                  ? "✓ পাসওয়ার্ড মিলেছে"
-                  : "✕ পাসওয়ার্ড মিলছে না"}
-              </span>
-            )}
-          </label>
-        </>}
-
-        <Btn type="submit" disabled={loading}>
-          {loading
-            ? "অপেক্ষা করুন..."
-            : isRegister
-              ? "রেজিস্ট্রেশন করুন"
-              : "লগইন করুন"}
-        </Btn>
-
-        {!isRegister && (
-          <button
-            type="button"
-            onClick={() => {
-              setForgotMode(true);
-              setMsg("");
-              setErr(false);
-            }}
-            style={{
-              border: 0,
-              background: "transparent",
-              color: C.navy2,
-              fontWeight: 700,
-              cursor: "pointer",
-              textAlign: "left",
-              padding: "5px 0"
-            }}
-          >
-            পাসওয়ার্ড ভুলে গেছেন? এখানে চাপুন
-          </button>
-        )}
-
-        <Notice text={msg} error={err} />
-
-        <p style={{ marginBottom: 0 }}>
-          {isRegister
-            ? <Link to="/login">আগে অ্যাকাউন্ট আছে? লগইন করুন</Link>
-            : <Link to="/register">নতুন অ্যাকাউন্ট খুলুন</Link>}
-        </p>
-      </form>
-    </div>
-  );
+      <p style={{ marginBottom: 0 }}>
+        {isRegister
+          ? <Link to="/login">আগে অ্যাকাউন্ট আছে? লগইন করুন</Link>
+          : <Link to="/register">নতুন অ্যাকাউন্ট খুলুন</Link>}
+      </p>
+    </form>
+  </div>;
 }
+
+/* ---------------- PASSWORD RESET PAGE ---------------- */
+
+function ResetPassword() {
+  const nav = useNavigate();
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!active) return;
+      setHasSession(!!data?.session && !error);
+      setSessionReady(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const checks = [
+    { label: "কমপক্ষে ৮ অক্ষর", ok: password.length >= 8 },
+    { label: "একটি বড় হাতের ইংরেজি অক্ষর", ok: /[A-Z]/.test(password) },
+    { label: "একটি ছোট হাতের ইংরেজি অক্ষর", ok: /[a-z]/.test(password) },
+    { label: "একটি সংখ্যা", ok: /[0-9]/.test(password) }
+  ];
+
+  const savePassword = async e => {
+    e.preventDefault();
+    setMsg("");
+    setErr(false);
+
+    if (!checks.every(x => x.ok)) {
+      setMsg("পাসওয়ার্ডের সব শর্ত পূরণ করুন।");
+      setErr(true);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMsg("দুইবার দেওয়া পাসওয়ার্ড মিলছে না।");
+      setErr(true);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+      setMsg("আপনার পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।");
+      setPassword("");
+      setConfirmPassword("");
+      setHasSession(false);
+    } catch (e) {
+      setMsg(e.message || "পাসওয়ার্ড পরিবর্তন করা যায়নি।");
+      setErr(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!sessionReady) {
+    return <div style={centerPage}>যাচাই করা হচ্ছে...</div>;
+  }
+
+  if (!hasSession) {
+    return <div style={centerPage}>
+      <div style={authBox}>
+        <h2 style={{ color: C.navy, margin: 0 }}>পাসওয়ার্ড রিসেট</h2>
+        <Notice text={msg || "রিসেট লিংকটি সঠিকভাবে খোলা যায়নি অথবা লিংকের মেয়াদ শেষ হয়েছে। লগইন পেজ থেকে আবার নতুন রিসেট লিংক নিন।"} error={!msg} />
+        <Btn onClick={() => nav("/login")}>লগইন পেজে যান</Btn>
+      </div>
+    </div>;
+  }
+
+  return <div style={centerPage}>
+    <form onSubmit={savePassword} style={authBox}>
+      <h2 style={{ color: C.navy, margin: 0 }}>নতুন পাসওয়ার্ড দিন</h2>
+
+      <label style={authLabel}>
+        নতুন পাসওয়ার্ড
+        <div style={{ position: "relative" }}>
+          <input type={showPassword ? "text" : "password"} required
+            value={password} onChange={e => setPassword(e.target.value)}
+            style={{ ...authInput, paddingRight: 70 }} />
+          <button type="button" onClick={() => setShowPassword(!showPassword)}
+            style={authToggle}>{showPassword ? "লুকান" : "দেখুন"}</button>
+        </div>
+      </label>
+
+      <div style={{ display: "grid", gap: 5, padding: 10, background: "#F3F8FE", borderRadius: 9, fontSize: 12 }}>
+        {checks.map((x, i) => <div key={i} style={{ color: x.ok ? "#16834A" : "#777" }}>
+          {x.ok ? "✓" : "○"} {x.label}
+        </div>)}
+      </div>
+
+      <label style={authLabel}>
+        পাসওয়ার্ড আবার লিখুন
+        <div style={{ position: "relative" }}>
+          <input type={showConfirm ? "text" : "password"} required
+            value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+            style={{ ...authInput, paddingRight: 70 }} />
+          <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+            style={authToggle}>{showConfirm ? "লুকান" : "দেখুন"}</button>
+        </div>
+      </label>
+
+      <Notice text={msg} error={err} />
+      <Btn type="submit" disabled={saving}>{saving ? "সংরক্ষণ হচ্ছে..." : "নতুন পাসওয়ার্ড সংরক্ষণ করুন"}</Btn>
+    </form>
+  </div>;
+}
+
+const centerPage = { minHeight: "65vh", display: "grid", placeItems: "center", padding: 16 };
+const authBox = {
+  background: "#fff", border: `1px solid ${C.border}`, borderRadius: 14,
+  padding: 22, width: "min(100%,430px)", display: "grid", gap: 13
+};
+const authInput = {
+  width: "100%", padding: 12, border: `1px solid ${C.border}`,
+  borderRadius: 9, fontSize: 15, boxSizing: "border-box", background: "#fff"
+};
+const authLabel = {
+  display: "grid", gap: 6, fontWeight: 600, color: C.navy, fontSize: 14
+};
+const authToggle = {
+  position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+  border: 0, background: "transparent", color: C.navy, cursor: "pointer", fontWeight: 700
+};
 
 /* ---------------- GUEST JOB POST ---------------- */
 

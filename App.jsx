@@ -300,11 +300,12 @@ function Footer() {
   </footer>;
 }
 
-/* ---------------- AUTH: LOGIN AND REGISTRATION ---------------- */
+/* ---------------- AUTH: LOGIN, REGISTRATION AND OTP RESET ---------------- */
 
 function Auth({ mode, refresh }) {
   const nav = useNavigate();
   const params = new URLSearchParams(window.location.hash.split("?")[1] || window.location.search);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -316,6 +317,11 @@ function Auth({ mode, refresh }) {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // forgotStep: email -> otp -> password
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotStep, setForgotStep] = useState("email");
+  const [otp, setOtp] = useState("");
   const [resetSending, setResetSending] = useState(false);
 
   const isRegister = mode === "register";
@@ -336,16 +342,25 @@ function Auth({ mode, refresh }) {
     if (m.includes("invalid email")) return "সঠিক ইমেইল ঠিকানা লিখুন।";
     if (m.includes("rate limit")) return "অনেকবার চেষ্টা করা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।";
     if (m.includes("network") || m.includes("fetch")) return "ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
+    if (m.includes("token") || m.includes("otp")) return "কোডটি ভুল অথবা মেয়াদ শেষ হয়েছে। নতুন কোড নিয়ে আবার চেষ্টা করুন।";
     if (m.includes("password")) return "পাসওয়ার্ড গ্রহণ করা যায়নি। পাসওয়ার্ডের নিয়মগুলো পরীক্ষা করুন।";
     return message || "দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।";
   };
 
-  const sendResetLink = async () => {
+  // ধাপ ১: ইমেইলে রিসেট OTP পাঠানো
+  const sendResetCode = async e => {
+    if (e) e.preventDefault();
     setMsg("");
     setErr(false);
 
     if (!email.trim()) {
-      setMsg("পাসওয়ার্ড রিসেট করতে আগে আপনার ইমেইল লিখুন।");
+      setMsg("আপনার Gmail ঠিকানা লিখুন।");
+      setErr(true);
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      setMsg("Supabase কনফিগার করা নেই।");
       setErr(true);
       return;
     }
@@ -358,7 +373,80 @@ function Auth({ mode, refresh }) {
         { redirectTo }
       );
       if (error) throw error;
-      setMsg("পাসওয়ার্ড পরিবর্তনের লিংক আপনার ইমেইলে পাঠানো হয়েছে। ইনবক্স ও Spam ফোল্ডার পরীক্ষা করুন।");
+
+      setForgotStep("otp");
+      setMsg("আপনার ইমেইলে ৬ সংখ্যার কোড পাঠানো হয়েছে। Inbox এবং Spam ফোল্ডার পরীক্ষা করুন।");
+    } catch (e) {
+      setMsg(friendlyError(e.message));
+      setErr(true);
+    } finally {
+      setResetSending(false);
+    }
+  };
+
+  // ধাপ ২: ইমেইলের OTP যাচাই
+  const verifyResetCode = async e => {
+    e.preventDefault();
+    setMsg("");
+    setErr(false);
+
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setMsg("ইমেইলে পাওয়া ৬ সংখ্যার কোডটি লিখুন।");
+      setErr(true);
+      return;
+    }
+
+    setResetSending(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: otp.trim(),
+        type: "recovery"
+      });
+      if (error) throw error;
+
+      setForgotStep("password");
+      setPassword("");
+      setConfirmPassword("");
+      setMsg("কোড সঠিক। এখন নতুন পাসওয়ার্ড সেট করুন।");
+    } catch (e) {
+      setMsg(friendlyError(e.message));
+      setErr(true);
+    } finally {
+      setResetSending(false);
+    }
+  };
+
+  // ধাপ ৩: নতুন পাসওয়ার্ড সংরক্ষণ
+  const saveNewPassword = async e => {
+    e.preventDefault();
+    setMsg("");
+    setErr(false);
+
+    if (!passwordStrong) {
+      setMsg("পাসওয়ার্ডের সব শর্ত পূরণ করুন।");
+      setErr(true);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMsg("দুইবার দেওয়া পাসওয়ার্ড মিলছে না।");
+      setErr(true);
+      return;
+    }
+
+    setResetSending(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+      setMsg("আপনার পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।");
+      setPassword("");
+      setConfirmPassword("");
+      setOtp("");
+      setForgotMode(false);
+      setForgotStep("email");
+      nav("/login");
     } catch (e) {
       setMsg(friendlyError(e.message));
       setErr(true);
@@ -469,6 +557,143 @@ function Auth({ mode, refresh }) {
     cursor: "pointer", fontWeight: 700
   };
 
+  // আলাদা পাসওয়ার্ড রিসেট পেজ
+  if (!isRegister && forgotMode) {
+    return <div style={centerPage}>
+      <form
+        onSubmit={
+          forgotStep === "email" ? sendResetCode :
+          forgotStep === "otp" ? verifyResetCode : saveNewPassword
+        }
+        style={authBox}
+      >
+        <h1 style={{ margin: 0, color: C.navy }}>পাসওয়ার্ড রিসেট</h1>
+
+        {forgotStep === "email" && <>
+          <p style={{ margin: 0, color: C.muted, lineHeight: 1.7 }}>
+            আপনার অ্যাকাউন্টে ব্যবহার করা Gmail ঠিকানাটি লিখুন। আমরা সেখানে ৬ সংখ্যার কোড পাঠাব।
+          </p>
+          <label style={labelStyle}>
+            Gmail ঠিকানা
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="example@gmail.com"
+              required
+              style={inputStyle}
+            />
+          </label>
+          <Btn type="submit" disabled={resetSending}>
+            {resetSending ? "কোড পাঠানো হচ্ছে..." : "ওকে — কোড পাঠান"}
+          </Btn>
+        </>}
+
+        {forgotStep === "otp" && <>
+          <p style={{ margin: 0, color: C.muted, lineHeight: 1.7 }}>
+            এই ইমেইলে কোড পাঠানো হয়েছে:
+            <b style={{ display: "block", color: C.navy, overflowWrap: "anywhere" }}>{email}</b>
+            Gmail থেকে পাওয়া ৬ সংখ্যার কোডটি লিখুন।
+          </p>
+          <label style={labelStyle}>
+            ৬ সংখ্যার কোড
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otp}
+              onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="123456"
+              required
+              style={{ ...inputStyle, letterSpacing: 8, textAlign: "center", fontSize: 22 }}
+            />
+          </label>
+          <Btn type="submit" disabled={resetSending}>
+            {resetSending ? "যাচাই হচ্ছে..." : "ওকে — কোড যাচাই করুন"}
+          </Btn>
+          <Btn tone="light" onClick={() => {
+            setForgotStep("email");
+            setOtp("");
+            setMsg("");
+            setErr(false);
+          }}>অন্য Gmail ব্যবহার করুন</Btn>
+        </>}
+
+        {forgotStep === "password" && <>
+          <p style={{ margin: 0, color: C.muted }}>
+            কোড যাচাই হয়েছে। এখন আপনার নতুন পাসওয়ার্ড লিখুন।
+          </p>
+          <label style={labelStyle}>
+            নতুন পাসওয়ার্ড
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="নতুন পাসওয়ার্ড"
+                required
+                style={{ ...inputStyle, paddingRight: 75 }}
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                style={toggleStyle}>{showPassword ? "লুকান" : "দেখুন"}</button>
+            </div>
+          </label>
+
+          <div style={{
+            display: "grid", gap: 5, padding: 10,
+            background: "#F3F8FE", borderRadius: 9, fontSize: 12
+          }}>
+            <strong style={{ color: C.navy }}>পাসওয়ার্ডের শর্ত</strong>
+            {passwordChecks.map((x, i) => <div key={i} style={{ color: x.ok ? "#16834A" : "#777" }}>
+              {x.ok ? "✓" : "○"} {x.label}
+            </div>)}
+          </div>
+
+          <label style={labelStyle}>
+            নতুন পাসওয়ার্ড আবার লিখুন
+            <div style={{ position: "relative" }}>
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="একই পাসওয়ার্ড আবার লিখুন"
+                required
+                style={{ ...inputStyle, paddingRight: 75 }}
+              />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                style={toggleStyle}>{showConfirm ? "লুকান" : "দেখুন"}</button>
+            </div>
+          </label>
+          {confirmPassword && <span style={{
+            color: password === confirmPassword ? "#16834A" : "#D32F2F",
+            fontSize: 12
+          }}>
+            {password === confirmPassword ? "✓ পাসওয়ার্ড মিলেছে" : "✕ পাসওয়ার্ড মিলছে না"}
+          </span>}
+          <Btn type="submit" disabled={resetSending}>
+            {resetSending ? "পাসওয়ার্ড পরিবর্তন হচ্ছে..." : "ওকে — পাসওয়ার্ড পরিবর্তন করুন"}
+          </Btn>
+        </>}
+
+        <Notice text={msg} error={err} />
+
+        <button type="button" onClick={() => {
+          setForgotMode(false);
+          setForgotStep("email");
+          setOtp("");
+          setPassword("");
+          setConfirmPassword("");
+          setMsg("");
+          setErr(false);
+        }} style={{
+          border: 0, background: "transparent", color: C.navy2,
+          fontWeight: 700, cursor: "pointer", padding: 6
+        }}>← লগইনে ফিরে যান</button>
+      </form>
+    </div>;
+  }
+
   return <div style={centerPage}>
     <form onSubmit={submit} style={authBox}>
       <h1 style={{ marginTop: 0, color: C.navy }}>
@@ -549,13 +774,17 @@ function Auth({ mode, refresh }) {
         {loading ? "অপেক্ষা করুন..." : isRegister ? "রেজিস্ট্রেশন করুন" : "লগইন করুন"}
       </Btn>
 
-      {!isRegister && <button type="button" onClick={sendResetLink}
-        disabled={resetSending || loading}
-        style={{
-          border: 0, background: "transparent", color: C.navy2,
-          fontWeight: 700, cursor: "pointer", textAlign: "left", padding: "5px 0"
-        }}>
-        {resetSending ? "লিংক পাঠানো হচ্ছে..." : "পাসওয়ার্ড ভুলে গেছেন? এখানে চাপুন"}
+      {!isRegister && <button type="button" onClick={() => {
+        setForgotMode(true);
+        setForgotStep("email");
+        setMsg("");
+        setErr(false);
+        setPassword("");
+      }} style={{
+        border: 0, background: "transparent", color: C.navy2,
+        fontWeight: 700, cursor: "pointer", textAlign: "left", padding: "5px 0"
+      }}>
+        পাসওয়ার্ড ভুলে গেছেন? এখানে চাপুন
       </button>}
 
       <Notice text={msg} error={err} />
@@ -573,116 +802,12 @@ function Auth({ mode, refresh }) {
 
 function ResetPassword() {
   const nav = useNavigate();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [hasSession, setHasSession] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!active) return;
-      setHasSession(!!data?.session && !error);
-      setSessionReady(true);
-    });
-    return () => { active = false; };
-  }, []);
-
-  const checks = [
-    { label: "কমপক্ষে ৮ অক্ষর", ok: password.length >= 8 },
-    { label: "একটি বড় হাতের ইংরেজি অক্ষর", ok: /[A-Z]/.test(password) },
-    { label: "একটি ছোট হাতের ইংরেজি অক্ষর", ok: /[a-z]/.test(password) },
-    { label: "একটি সংখ্যা", ok: /[0-9]/.test(password) }
-  ];
-
-  const savePassword = async e => {
-    e.preventDefault();
-    setMsg("");
-    setErr(false);
-
-    if (!checks.every(x => x.ok)) {
-      setMsg("পাসওয়ার্ডের সব শর্ত পূরণ করুন।");
-      setErr(true);
-      return;
-    }
-    if (password !== confirmPassword) {
-      setMsg("দুইবার দেওয়া পাসওয়ার্ড মিলছে না।");
-      setErr(true);
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-
-      await supabase.auth.signOut();
-      setMsg("আপনার পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে। এখন নতুন পাসওয়ার্ড দিয়ে লগইন করুন।");
-      setPassword("");
-      setConfirmPassword("");
-      setHasSession(false);
-    } catch (e) {
-      setMsg(e.message || "পাসওয়ার্ড পরিবর্তন করা যায়নি।");
-      setErr(true);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (!sessionReady) {
-    return <div style={centerPage}>যাচাই করা হচ্ছে...</div>;
-  }
-
-  if (!hasSession) {
-    return <div style={centerPage}>
-      <div style={authBox}>
-        <h2 style={{ color: C.navy, margin: 0 }}>পাসওয়ার্ড রিসেট</h2>
-        <Notice text={msg || "রিসেট লিংকটি সঠিকভাবে খোলা যায়নি অথবা লিংকের মেয়াদ শেষ হয়েছে। লগইন পেজ থেকে আবার নতুন রিসেট লিংক নিন।"} error={!msg} />
-        <Btn onClick={() => nav("/login")}>লগইন পেজে যান</Btn>
-      </div>
-    </div>;
-  }
-
   return <div style={centerPage}>
-    <form onSubmit={savePassword} style={authBox}>
-      <h2 style={{ color: C.navy, margin: 0 }}>নতুন পাসওয়ার্ড দিন</h2>
-
-      <label style={authLabel}>
-        নতুন পাসওয়ার্ড
-        <div style={{ position: "relative" }}>
-          <input type={showPassword ? "text" : "password"} required
-            value={password} onChange={e => setPassword(e.target.value)}
-            style={{ ...authInput, paddingRight: 70 }} />
-          <button type="button" onClick={() => setShowPassword(!showPassword)}
-            style={authToggle}>{showPassword ? "লুকান" : "দেখুন"}</button>
-        </div>
-      </label>
-
-      <div style={{ display: "grid", gap: 5, padding: 10, background: "#F3F8FE", borderRadius: 9, fontSize: 12 }}>
-        {checks.map((x, i) => <div key={i} style={{ color: x.ok ? "#16834A" : "#777" }}>
-          {x.ok ? "✓" : "○"} {x.label}
-        </div>)}
-      </div>
-
-      <label style={authLabel}>
-        পাসওয়ার্ড আবার লিখুন
-        <div style={{ position: "relative" }}>
-          <input type={showConfirm ? "text" : "password"} required
-            value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-            style={{ ...authInput, paddingRight: 70 }} />
-          <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-            style={authToggle}>{showConfirm ? "লুকান" : "দেখুন"}</button>
-        </div>
-      </label>
-
-      <Notice text={msg} error={err} />
-      <Btn type="submit" disabled={saving}>{saving ? "সংরক্ষণ হচ্ছে..." : "নতুন পাসওয়ার্ড সংরক্ষণ করুন"}</Btn>
-    </form>
+    <div style={authBox}>
+      <h2 style={{ color: C.navy, margin: 0 }}>পাসওয়ার্ড রিসেট</h2>
+      <Notice text="লগইন পেজে গিয়ে ‘পাসওয়ার্ড ভুলে গেছেন?’ বাটনে চাপ দিয়ে নতুন কোড নিন।" />
+      <Btn onClick={() => nav("/login")}>লগইন পেজে যান</Btn>
+    </div>
   </div>;
 }
 

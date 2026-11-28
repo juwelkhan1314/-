@@ -1515,17 +1515,14 @@ function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        navigate("/reset-password");
-      }
-      if (event === "SIGNED_OUT") {
-        setUser(null);
-        setProfile(null);
-      } else if (session?.user) {
-        setUser(session.user);
-        Promise.resolve().then(() => refresh());
-      }
-    });
+  if (event === "SIGNED_OUT") {
+    setUser(null);
+    setProfile(null);
+  } else if (session?.user) {
+    setUser(session.user);
+    Promise.resolve().then(() => refresh());
+  }
+});
 
     return () => {
       mounted = false;
